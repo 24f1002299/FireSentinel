@@ -58,6 +58,7 @@ To also delete locally generated artifacts, run:
 
 ```text
 src/firesentinel/
+  core/          typed evidence, trace, and artifact record contracts
   data/          dataset manifest and download code
   vision/        OpenCV pipeline components
   agent/         decision and replay logic
@@ -73,3 +74,6 @@ docs/            project and development documentation
 See [the development workflow](docs/development.md) for configuration details
 and direct module commands. The locked OpenCV runtime evidence remains in
 `docs/runtime-baseline.json` and `docs/opencv-build-info.txt`.
+
+Evidence packets use strict canonical JSON records; see
+[the evidence-record contract](docs/evidence-records.md).

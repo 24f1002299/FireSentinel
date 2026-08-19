@@ -1,0 +1,46 @@
+# Evidence and trace records
+
+FireSentinel stores its Day 4 evidence packet as canonical JSON emitted by
+`firesentinel.core.records`. The contracts use Python dataclasses and the
+standard library only; they are intentionally not a database or a general
+schema framework.
+
+Every top-level JSON value has a `record_type` and `schema_version` (currently
+`1`). The record types are `manifest_case`, `observation_request`,
+`source_object`, `vision_evidence`, `action`, `budget`, `trace`, and `outcome`.
+`Trace` is the complete packet: it embeds the linked case, requests, sources,
+evidence, actions, budget, and terminal outcome, then validates those links.
+
+## Shared conventions
+
+- Timestamps are timezone-aware UTC values and serialize as RFC 3339 strings
+  ending in `Z`.
+- Locations are WGS 84 decimal degrees, serialized as `{ "lat": ..., "lon": ... }`.
+- Measurements always carry one of `K`, `km2`, `px`, `s`, `B`, `deg`, or `1`.
+- A missing measurement is JSON `null` and must name a `missing_reason`; a
+  present measurement must have a null `missing_reason`.
+- Confidence is a finite number in the inclusive range `0.0` through `1.0`.
+- Reasons are closed, lowercase `ReasonCode` values. This keeps decisions
+  comparable while any reviewer prose can live separately from factual records.
+- Content hashes are lowercase, 64-character SHA-256 hex digests.
+
+`Outcome` requires at least one evidence ID and a
+`ConfigurationReference`. `Trace` rejects an outcome unless every outcome
+evidence ID exists in its evidence list and both the outcome and every evidence
+record use the trace configuration. It also checks all request, source, action,
+and case links.
+
+## Artifact layout
+
+The deterministic packet directory is:
+
+```text
+artifacts/{case_id}/{content_hash}/
+  trace.json
+  ... future masks, overlays, and measurements ...
+```
+
+Use `canonical_content_hash(trace)` for the packet hash and
+`artifact_directory(settings.artifacts_dir, trace.case.case_id, trace_hash)`
+to get the safe path. The helper only derives the directory; later writers can
+create it atomically after their artifacts are complete.
