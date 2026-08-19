@@ -1,1 +1,26 @@
+# Local planning notes
+implementation-plan-*.md
 implementation-plan-local-30-days.md
+
+# Python environments, bytecode, and test/build outputs
+.venv/
+.venv-*/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Local runtime output
+artifacts/
+*.log
+*.tmp
+
+# Per-user editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
