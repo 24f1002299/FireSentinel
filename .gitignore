@@ -13,9 +13,15 @@ __pycache__/
 htmlcov/
 build/
 dist/
+.ruff_cache/
+.mypy_cache/
+.pytype/
 
-# Local runtime output
-artifacts/
+# Local runtime output (the placeholder keeps the shared output location visible)
+artifacts/*
+!artifacts/.gitkeep
+data/*
+!data/.gitkeep
 *.log
 *.tmp
 

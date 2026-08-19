@@ -24,6 +24,17 @@ url = "https://files.pythonhosted.org/packages/da/35/f2287558c17e29fafc8ef3daf81
 sha256 = "9f505dda5ac9f0c8309b5e8bd445a8c2bf7246f3ce950121e45ea15bc41d1494"
 
 [[packages]]
+name = "ast-serialize"
+version = "0.8.0"
+
+[[packages.wheels]]
+name = "ast_serialize-0.8.0-cp39-abi3-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/5f/a4/3e887bbd92164e183cb6e412c6a3e9198ddd446d7fe405958293ef5ef49c/ast_serialize-0.8.0-cp39-abi3-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "861794565b06337005c1447ef23103a3d5a627d08bdc827870d00d0b28ef5f51"
+
+[[packages]]
 name = "attrs"
 version = "26.1.0"
 
@@ -211,6 +222,17 @@ url = "https://files.pythonhosted.org/packages/41/45/1a4ed80516f02155c51f51e8ced
 sha256 = "98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe"
 
 [[packages]]
+name = "librt"
+version = "0.15.0"
+
+[[packages.wheels]]
+name = "librt-0.15.0-cp313-cp313-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/bf/af/64aff4885a40b93132382f2c314647d722574605416504379184ef3045ea/librt-0.15.0-cp313-cp313-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "f395a4a9a03ac062dbe9a9f82e0c720502e590a38feee6a757bc82e9c63afbd8"
+
+[[packages]]
 name = "markupsafe"
 version = "3.0.3"
 
@@ -220,6 +242,28 @@ url = "https://files.pythonhosted.org/packages/05/73/c4abe620b841b6b791f2edc248f
 
 [packages.wheels.hashes]
 sha256 = "9a1abfdc021a164803f4d485104931fb8f8c1efd55bc6b748d2f5774e78b62c5"
+
+[[packages]]
+name = "mypy"
+version = "2.3.1"
+
+[[packages.wheels]]
+name = "mypy-2.3.1-cp313-cp313-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/70/4e/d77daab008bbc4e5001374d7928f4a260d28f0e6747af444fc4763f7a310/mypy-2.3.1-cp313-cp313-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "e9144ac16fde007096f9563eb2041b4433c2d705c4218edeb79e7e9d01035ee6"
+
+[[packages]]
+name = "mypy-extensions"
+version = "1.1.0"
+
+[[packages.wheels]]
+name = "mypy_extensions-1.1.0-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505"
 
 [[packages]]
 name = "narwhals"
@@ -286,6 +330,17 @@ url = "https://files.pythonhosted.org/packages/9c/ba/18c4ec8a746e177da05a9e7a796
 
 [packages.wheels.hashes]
 sha256 = "0d298e951f23016ce4699951d044ae6418dbc91bf68cefca0f77666fcbb4e5c6"
+
+[[packages]]
+name = "pathspec"
+version = "1.1.1"
+
+[[packages.wheels]]
+name = "pathspec-1.1.1-py3-none-any.whl"
+url = "https://files.pythonhosted.org/packages/f1/d9/7fb5aa316bc299258e68c73ba3bddbc499654a07f151cba08f6153988714/pathspec-1.1.1-py3-none-any.whl"
+
+[packages.wheels.hashes]
+sha256 = "a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"
 
 [[packages]]
 name = "pillow"
@@ -429,6 +484,17 @@ url = "https://files.pythonhosted.org/packages/7b/ed/a03b09668e74e5dabbf2e211f64
 
 [packages.wheels.hashes]
 sha256 = "9250a9a0a6fd4648b3f868da8d91a4c52b5811a62df58e753d50ae4454a36f80"
+
+[[packages]]
+name = "ruff"
+version = "0.16.3"
+
+[[packages.wheels]]
+name = "ruff-0.16.3-py3-none-win_amd64.whl"
+url = "https://files.pythonhosted.org/packages/b2/99/e2a2bfc4fbf0a1e8a916bc9ebe6fe6c58cc34c28e0ffc6ce281d572d1c2e/ruff-0.16.3-py3-none-win_amd64.whl"
+
+[packages.wheels.hashes]
+sha256 = "e80a7d69ca2a6d1c4d352ec91458cdca6e56c83cdbcabd93e4abe1e53591d948"
 
 [[packages]]
 name = "six"

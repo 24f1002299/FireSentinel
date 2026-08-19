@@ -1,0 +1,1 @@
+"""FireSentinel test suite."""

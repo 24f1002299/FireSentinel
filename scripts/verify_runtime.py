@@ -6,20 +6,20 @@ import argparse
 import hashlib
 import json
 import platform
-import sys
 from pathlib import Path
 from typing import Any
 
 import cv2
 import numpy as np
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOCKFILE = PROJECT_ROOT / "requirements.lock"
 
 # Filled from the OpenCV 5.0.0.93 / NumPy 2.5.1 clean-install baseline.
 EXPECTED_SMOKE_HASHES: dict[str, str] = {
-    "connected_components": "848118a2093daef2007a50f85d0ef3b996e6005a4861b159ee127c2b8113c596",
+    "connected_components": (
+        "848118a2093daef2007a50f85d0ef3b996e6005a4861b159ee127c2b8113c596"
+    ),
     "contours": "fa5e7722896ce59a8d11c59c1c5afa010a13848649230678c7e0c2e92926fbae",
     "morphology": "723dd2aae1b12f1084fcac96b32ce2cc91ed39a8aec66a347050890a053fb9e8",
     "resize": "f94ea3c3035b45cc71787bf9eeca03dd1c2d0a02d931dcb8e07fb26df774ff98",

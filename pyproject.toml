@@ -19,4 +19,23 @@ dependencies = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src", "."]
 addopts = "-ra -p no:cacheprovider"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+extend-exclude = [".venv", ".venv-*", "artifacts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.13"
+files = ["src", "tests", "scripts"]
+strict = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["cv2", "streamlit"]
+ignore_missing_imports = true

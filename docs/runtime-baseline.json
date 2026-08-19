@@ -6,7 +6,7 @@
   },
   "dependency_lock": {
     "file": "requirements.lock",
-    "sha256": "d120695f5a217bc4482681a17ccd6b0470abc0df3ad8550d7be513d5c8dbb909"
+    "sha256": "62a601b9560163b7acaa32aaa2c4a9ffee8519b4d929a27d9f5631649bcacde0"
   },
   "opencv": {
     "build_information_sha256": "ce2f2890911cf9cf8d7c54cfbc8ccd4fb073cc2b53be1f4c7cbae8e5fd294e1c",
