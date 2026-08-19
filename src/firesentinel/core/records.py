@@ -546,7 +546,8 @@ class SourceObject(JsonRecord):
     object_key: str
     content_hash: str
     size_bytes: int
-    scan_time: datetime
+    scan_start: datetime
+    scan_end: datetime
     discovered_at: datetime
 
     RECORD_TYPE: ClassVar[str] = "source_object"
@@ -563,12 +564,21 @@ class SourceObject(JsonRecord):
             self, "content_hash", _content_hash(self.content_hash, "content_hash")
         )
         object.__setattr__(self, "size_bytes", _integer(self.size_bytes, "size_bytes"))
-        scan_time = _utc_timestamp(self.scan_time, "scan_time")
+        scan_start = _utc_timestamp(self.scan_start, "scan_start")
+        scan_end = _utc_timestamp(self.scan_end, "scan_end")
         discovered_at = _utc_timestamp(self.discovered_at, "discovered_at")
-        if discovered_at < scan_time:
-            _fail("discovered_at", "must not be before scan_time")
-        object.__setattr__(self, "scan_time", scan_time)
+        if scan_end < scan_start:
+            _fail("scan_end", "must not be before scan_start")
+        if discovered_at < scan_end:
+            _fail("discovered_at", "must not be before scan_end")
+        object.__setattr__(self, "scan_start", scan_start)
+        object.__setattr__(self, "scan_end", scan_end)
         object.__setattr__(self, "discovered_at", discovered_at)
+
+    @property
+    def scan_time(self) -> datetime:
+        """Compatibility alias for the start of the source scan."""
+        return self.scan_start
 
     @classmethod
     def from_dict(cls, value: object) -> Self:
@@ -583,7 +593,8 @@ class SourceObject(JsonRecord):
                 "object_key",
                 "content_hash",
                 "size_bytes",
-                "scan_time",
+                "scan_start",
+                "scan_end",
                 "discovered_at",
             },
         )
@@ -595,7 +606,8 @@ class SourceObject(JsonRecord):
             object_key=payload["object_key"],
             content_hash=payload["content_hash"],
             size_bytes=payload["size_bytes"],
-            scan_time=_timestamp_from_json(payload["scan_time"], "scan_time"),
+            scan_start=_timestamp_from_json(payload["scan_start"], "scan_start"),
+            scan_end=_timestamp_from_json(payload["scan_end"], "scan_end"),
             discovered_at=_timestamp_from_json(
                 payload["discovered_at"], "discovered_at"
             ),

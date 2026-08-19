@@ -31,6 +31,7 @@ class Settings:
     data_dir: Path
     artifacts_dir: Path
     manifests_dir: Path
+    catalog_cache_dir: Path
     log_level: str
 
 
@@ -57,6 +58,11 @@ def load_settings(
         manifests_dir=_path_setting(
             values.get(f"{ENV_PREFIX}MANIFESTS_DIR"),
             root_dir / "manifests",
+            root_dir,
+        ),
+        catalog_cache_dir=_path_setting(
+            values.get(f"{ENV_PREFIX}CATALOG_CACHE_DIR"),
+            root_dir / "data" / "catalog",
             root_dir,
         ),
         log_level=log_level,

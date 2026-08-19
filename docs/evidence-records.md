@@ -23,6 +23,9 @@ evidence, actions, budget, and terminal outcome, then validates those links.
 - Reasons are closed, lowercase `ReasonCode` values. This keeps decisions
   comparable while any reviewer prose can live separately from factual records.
 - Content hashes are lowercase, 64-character SHA-256 hex digests.
+- `source_object` records retain the exact source bucket, object key, byte size,
+  scan start, scan end, and source discovery time. The SHA-256 becomes known
+  when the selected object has been downloaded and verified.
 
 `Outcome` requires at least one evidence ID and a
 `ConfigurationReference`. `Trace` rejects an outcome unless every outcome

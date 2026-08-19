@@ -21,8 +21,23 @@ variables only to override local paths or log verbosity:
 | `FIRE_SENTINEL_DATA_DIR` | `data/` | Download destination. |
 | `FIRE_SENTINEL_ARTIFACTS_DIR` | `artifacts/` | Generated outputs. |
 | `FIRE_SENTINEL_MANIFESTS_DIR` | `manifests/` | Dataset manifest location. |
+| `FIRE_SENTINEL_CATALOG_CACHE_DIR` | `data/catalog/` | Immutable cached NOAA GOES-18 catalog listings. |
 
 Application logs are JSON emitted to standard error.
+
+## GOES-18 object discovery
+
+`firesentinel.data.goes18` resolves only public GOES-18 `ABI-L2-CMIPF`
+full-disk objects for Channels `C07` and `C14`. It uses anonymous HTTPS S3
+list requests, so it does not require AWS credentials or an AWS SDK. Each
+hourly listing is cached atomically under `data/catalog/`; later lookups reuse
+the exact catalog snapshot and its discovery time.
+
+`Goes18ObjectDiscovery.resolve()` returns either a `Goes18ObjectReference`
+with bucket, key, size, scan start/end, and discovery timestamp, or a typed
+`MissingFrame`. The nearest scan is measured from the object scan start, and
+an exact midpoint tie chooses the earlier scan. Catalog access failures remain
+exceptions so an unavailable catalog cannot be mistaken for absent imagery.
 
 ## Data and workflow placeholders
 

@@ -84,3 +84,8 @@ for persistent/transient heat, image shifts, and frame-quality failures. It
 uses seed `20260819`, fixed `1e-6` absolute tolerance, and SHA-256 integrity
 checks; the test suite verifies both repeated generation and deliberate
 corruption handling without downloading data.
+
+GOES-18 discovery is available as the typed `firesentinel.data.goes18` API. It
+uses anonymous public S3 catalog requests for only `ABI-L2-CMIPF` Channels 7
+and 14, with immutable local hourly catalog snapshots stored under
+`data/catalog/`. No AWS credentials are read or required.

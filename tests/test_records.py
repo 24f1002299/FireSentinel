@@ -75,8 +75,9 @@ def golden_records() -> GoldenRecords:
         object_key="ABI-L2-CMIPF/2026/example.nc",
         content_hash=HASH_A,
         size_bytes=1_024,
-        scan_time=request.observation_time,
-        discovered_at=request.observation_time + timedelta(minutes=1),
+        scan_start=request.observation_time,
+        scan_end=request.observation_time + timedelta(minutes=9),
+        discovered_at=request.observation_time + timedelta(minutes=10),
     )
     evidence = VisionEvidence(
         evidence_id="evidence-001",
