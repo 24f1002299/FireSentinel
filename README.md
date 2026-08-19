@@ -77,3 +77,10 @@ and direct module commands. The locked OpenCV runtime evidence remains in
 
 Evidence packets use strict canonical JSON records; see
 [the evidence-record contract](docs/evidence-records.md).
+
+The checked-in synthetic thermal fixture manifest in
+`src/firesentinel/vision/` provides seven small, deterministic offline cases
+for persistent/transient heat, image shifts, and frame-quality failures. It
+uses seed `20260819`, fixed `1e-6` absolute tolerance, and SHA-256 integrity
+checks; the test suite verifies both repeated generation and deliberate
+corruption handling without downloading data.

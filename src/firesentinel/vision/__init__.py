@@ -1,1 +1,43 @@
-"""OpenCV preprocessing and fire-candidate detection components."""
+"""OpenCV preprocessing, fixture, and fire-candidate detection components."""
+
+from firesentinel.vision.fixtures import (
+    FIXTURE_SEED,
+    FIXTURE_SHAPE,
+    FIXTURE_VERSION,
+    NUMERIC_TOLERANCES,
+    OFFLINE_MANIFEST_PATH,
+    ExpectedComponent,
+    FixtureIntegrityError,
+    FrameQualityExpectation,
+    NumericTolerances,
+    PersistenceExpectation,
+    SyntheticFixtureBundle,
+    SyntheticFixtureCase,
+    fixture_bundle_digest,
+    fixture_case_digests,
+    generate_synthetic_fixture_bundle,
+    load_offline_fixture_bundle,
+    offline_fixture_manifest,
+    verify_fixture_bundle,
+)
+
+__all__ = [
+    "FIXTURE_SEED",
+    "FIXTURE_SHAPE",
+    "FIXTURE_VERSION",
+    "NUMERIC_TOLERANCES",
+    "OFFLINE_MANIFEST_PATH",
+    "ExpectedComponent",
+    "FixtureIntegrityError",
+    "FrameQualityExpectation",
+    "NumericTolerances",
+    "PersistenceExpectation",
+    "SyntheticFixtureBundle",
+    "SyntheticFixtureCase",
+    "fixture_bundle_digest",
+    "fixture_case_digests",
+    "generate_synthetic_fixture_bundle",
+    "load_offline_fixture_bundle",
+    "offline_fixture_manifest",
+    "verify_fixture_bundle",
+]

@@ -1,0 +1,19 @@
+{
+  "fixture_version": 1,
+  "seed": 20260819,
+  "shape": [12, 12],
+  "numeric_tolerances": {
+    "absolute": 0.000001,
+    "relative": 0.0
+  },
+  "case_digests": {
+    "persistent_heat": "1bdf54eaf54fb68f44c2e0a6f9004fa862ee01eb5de241a2312b78341536f9f5",
+    "transient_heat": "32d108a562ad65df47abaef911cbe0eb178c65ae1b1cca5fd2c405d9c4f0be71",
+    "image_shift": "e617f38b2de78d46afbfe70ef2c7238239275a55743702d7543bd88ee28e122a",
+    "missing_pixels": "cacd49dca61aa7f6e75b8fbdb60b86db9df9286b5d8e5d83e0b287776e231205",
+    "saturated_pixels": "ed1af4829d1bd5ab2a3cdb291f003f11b1863036bd9ac06bb45beb630676d8dd",
+    "low_contrast": "d34b97afa17d29cd6c37d919fe270a10d9c71383eae84d44bb144fa081649ec6",
+    "empty_frame": "9fcb7012f19ad750f191b63278e31c8ac409b8681c0a56367ef5d923207cd741"
+  },
+  "bundle_digest": "16aa75e10db7f9f20e2f665e26f9a29e07bf60815f5673b890f6d4e2b356e007"
+}
