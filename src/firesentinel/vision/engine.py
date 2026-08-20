@@ -10,6 +10,7 @@ an atomic directory rename, so a failure cannot appear as a completed packet.
 from __future__ import annotations
 
 import argparse
+import errno
 import hashlib
 import io
 import json
@@ -448,7 +449,7 @@ def run_evidence_job(
         checkpoint()
         files = _artifact_files(runs)
         file_manifest = _file_manifest(files)
-        warnings = _warnings(runs)
+        warnings = _warnings(runs, persistence)
         stable_evidence = _stable_evidence(
             job, runs, persistence, warnings, file_manifest
         )
@@ -620,7 +621,9 @@ def _stable_tile_metadata(tile: PreparedTile) -> dict[str, object]:
     return metadata
 
 
-def _warnings(runs: list[_ObservationRun]) -> tuple[str, ...]:
+def _warnings(
+    runs: list[_ObservationRun], persistence: TemporalPersistenceResult
+) -> tuple[str, ...]:
     warnings: list[str] = []
     for run in runs:
         for channel, quality in (
@@ -631,6 +634,9 @@ def _warnings(runs: list[_ObservationRun]) -> tuple[str, ...]:
                 warnings.append(
                     f"{run.definition.observation_id}:{channel}:{reason.value}"
                 )
+    warnings.extend(
+        f"persistence:{reason.value}" for reason in persistence.reason_codes
+    )
     return tuple(sorted(set(warnings)))
 
 
@@ -763,6 +769,11 @@ def _classify_failure(error: Exception) -> EvidenceJobFailure:
     if isinstance(error, (GoesCropError, CropArtifactError)):
         return EvidenceJobFailure(ReasonCode.SOURCE_CORRUPT, str(error))
     if isinstance(error, OSError):
+        if error.errno == errno.ENOSPC or getattr(error, "winerror", None) == 112:
+            return EvidenceJobFailure(
+                ReasonCode.ARTIFACT_WRITE_FAILED,
+                f"insufficient disk space while writing local evidence: {error}",
+            )
         return EvidenceJobFailure(ReasonCode.ARTIFACT_WRITE_FAILED, str(error))
     if isinstance(error, (TypeError, ValueError)):
         return EvidenceJobFailure(ReasonCode.CONFIGURATION_INVALID, str(error))

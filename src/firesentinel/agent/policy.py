@@ -39,6 +39,7 @@ _POOR_QUALITY_REASONS = frozenset(
         ReasonCode.COVERAGE_INSUFFICIENT,
         ReasonCode.FRAME_BLANK,
         ReasonCode.FRAME_SATURATED,
+        ReasonCode.ALIGNMENT_FAILED,
     )
 )
 _WEAK_CONTEXTUAL_REASONS = frozenset(
@@ -69,6 +70,7 @@ class PolicyCondition(StrEnum):
     WEAK_CONTEXTUAL_CONTRAST = "weak_contextual_contrast"
     NO_FOLLOWUP_AVAILABLE = "no_followup_available"
     NO_DECISIVE_EVIDENCE = "no_decisive_evidence"
+    RECOVERY_RETRY_EXHAUSTED = "recovery_retry_exhausted"
 
 
 class PolicyRule(StrEnum):
@@ -83,6 +85,7 @@ class PolicyRule(StrEnum):
     WEAK_CONTEXTUAL_FOLLOWUP = "weak_contextual_followup"
     NO_DECISIVE_EVIDENCE_FOLLOWUP = "no_decisive_evidence_followup"
     NO_FOLLOWUP_ABSTAIN = "no_followup_abstain"
+    RECOVERY_RETRY_EXHAUSTED_ABSTAIN = "recovery_retry_exhausted_abstain"
 
 
 class ConsiderationStatus(StrEnum):
@@ -192,12 +195,19 @@ class EvidenceSnapshot:
             candidate_regions += len(components)
         persistence_count = persistence.get("persistence_count")
         confidence = persistence.get("confidence")
+        persistence_reasons = persistence.get("reason_codes", [])
         if isinstance(persistence_count, bool) or not isinstance(
             persistence_count, int
         ):
             raise ValueError("local persistence_count is invalid")
         if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
             raise ValueError("local persistence confidence is invalid")
+        if not isinstance(persistence_reasons, list):
+            raise ValueError("local persistence reasons are invalid")
+        try:
+            reasons.extend(ReasonCode(reason) for reason in persistence_reasons)
+        except ValueError as error:
+            raise ValueError("local persistence reason is unknown") from error
         return cls(
             evidence_ids=(evidence_id,),
             reason_codes=tuple(dict.fromkeys(reasons)),
@@ -441,6 +451,8 @@ def _conditions(
         conditions.append(PolicyCondition.BUDGET_EXHAUSTED)
     if _POOR_QUALITY_REASONS.intersection(evidence.reason_codes):
         conditions.append(PolicyCondition.POOR_QUALITY)
+        if budget.used_retries >= budget.max_retries:
+            conditions.append(PolicyCondition.RECOVERY_RETRY_EXHAUSTED)
     if ReasonCode.BANDS_CONFLICT in evidence.reason_codes:
         conditions.append(PolicyCondition.BANDS_CONFLICT)
     if (
@@ -483,6 +495,12 @@ def _select(
             PolicyRule.BUDGET_EXHAUSTED_ABSTAIN,
             "a configured resource limit is exhausted",
         )
+    if PolicyCondition.RECOVERY_RETRY_EXHAUSTED in active and available:
+        return _terminal_selection(
+            ActionType.ABSTAIN,
+            PolicyRule.RECOVERY_RETRY_EXHAUSTED_ABSTAIN,
+            "the one permitted recovery retry was already used",
+        )
     if PolicyCondition.POOR_QUALITY in active:
         action = _first_available(
             available,
@@ -496,7 +514,8 @@ def _select(
             return (
                 action,
                 PolicyRule.POOR_QUALITY_RETRY,
-                "poor-quality evidence requires an allowlisted replacement observation",
+                "unusable or unaligned evidence requires one allowlisted replacement "
+                "observation",
             )
         return _terminal_selection(
             ActionType.ABSTAIN,

@@ -171,3 +171,24 @@ warnings, and provenance. Its three built-in deterministic stories cover
 review escalation, no persistent evidence, and safe abstention. Every story
 uses reviewer-facing thermal-evidence language and does not establish a
 wildfire determination.
+
+## Failure and recovery records
+
+Day 24 extends the `last_tool_result.error` object stored in every bounded-loop
+checkpoint with a fixed `recovery_action`. It covers unavailable or corrupt
+cache bytes, elapsed-time limits, insufficient disk space, and artifact write
+failures without allowing alternative sources or partial outputs. The next
+policy decision abstains after those tool failures.
+
+For `coverage_insufficient`, blank/saturated frames, and `alignment_failed`,
+the loop can consume exactly one persisted recovery retry for an allowlisted
+replacement observation. Its transition event records that retry. A second
+unusable/unaligned result selects explicit abstention. Persistence results
+write `alignment_failed` as a closed reason code when a real observation has
+no valid mapping on the common geographic grid.
+
+The reviewer verifies a `local_evidence_job` packet's completion marker,
+packet SHA-256, and every declared asset hash and size before displaying it.
+If no valid packet exists, it can show the loop journal as a trace-only case
+with its terminal outcome, error, and fixed recovery action. It never presents
+a staged, corrupt, or partially written artifact as valid evidence.

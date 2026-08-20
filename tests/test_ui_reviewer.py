@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 from pathlib import Path
 
 import numpy as np
@@ -114,6 +115,18 @@ def test_reviewer_discovers_packets_and_exposes_masks_contours_and_location(
     (local_directory / "evidence.json").write_text(
         json.dumps(_local_packet()), encoding="utf-8"
     )
+    evidence_bytes = (local_directory / "evidence.json").read_bytes()
+    (local_directory / "completion.json").write_text(
+        json.dumps(
+            {
+                "record_type": "evidence_job_completion",
+                "schema_version": 1,
+                "content_hash": "a" * 64,
+                "evidence_sha256": sha256(evidence_bytes).hexdigest(),
+            }
+        ),
+        encoding="utf-8",
+    )
     real_directory = tmp_path / "historical-case" / ("b" * 64)
     real_directory.mkdir(parents=True)
     (real_directory / "evidence.json").write_text(
@@ -122,6 +135,27 @@ def test_reviewer_discovers_packets_and_exposes_masks_contours_and_location(
     broken_directory = tmp_path / "broken" / "packet"
     broken_directory.mkdir(parents=True)
     (broken_directory / "evidence.json").write_text("{", encoding="utf-8")
+    partial_directory = tmp_path / "partial" / "packet"
+    partial_directory.mkdir(parents=True)
+    (partial_directory / "evidence.json").write_text(
+        json.dumps(_local_packet()), encoding="utf-8"
+    )
+    corrupt_directory = tmp_path / "corrupt" / "packet"
+    corrupt_directory.mkdir(parents=True)
+    (corrupt_directory / "evidence.json").write_text(
+        json.dumps(_local_packet()), encoding="utf-8"
+    )
+    (corrupt_directory / "completion.json").write_text(
+        json.dumps(
+            {
+                "record_type": "evidence_job_completion",
+                "schema_version": 1,
+                "content_hash": "a" * 64,
+                "evidence_sha256": "0" * 64,
+            }
+        ),
+        encoding="utf-8",
+    )
 
     catalog = discover_reviewer_cases(tmp_path)
 
@@ -129,7 +163,7 @@ def test_reviewer_discovers_packets_and_exposes_masks_contours_and_location(
         "historical-case",
         "review-case",
     ]
-    assert len(catalog.warnings) == 1
+    assert len(catalog.warnings) == 3
     local_case = next(case for case in catalog.cases if case.case_id == "review-case")
     observation = local_case.observations[0]
     assert "39.8000" in local_case.location

@@ -29,6 +29,7 @@ from firesentinel.agent.policy import (
     EvidenceSnapshot,
     PolicyAction,
     PolicyDecision,
+    PolicyRule,
     TransparentAgentPolicy,
     apply_policy_decision,
 )
@@ -262,7 +263,7 @@ class BoundedAgentLoop:
         maximum_bytes: int,
         maximum_elapsed_seconds: float,
         maximum_observations: int = 3,
-        maximum_retries: int = 0,
+        maximum_retries: int = 1,
         policy: TransparentAgentPolicy | None = None,
         trace_id: str | None = None,
         clock: Callable[[], float] = time.monotonic,
@@ -415,6 +416,15 @@ class BoundedAgentLoop:
                 ReasonCode.CONFIGURATION_INVALID, "act state has no pending action"
             )
             return
+        is_recovery_retry = (
+            self._decision is not None
+            and self._decision.rule is PolicyRule.POOR_QUALITY_RETRY
+            and self._pending_action.action_type in _OBSERVATION_ACTIONS
+        )
+        if is_recovery_retry and not self._tools.consume_recovery_retry():
+            self._pending_action = None
+            self._transition(AgentLoopState.DECIDE, "recovery_retry_exhausted")
+            return
         try:
             result = (
                 _apply_pending_action(self._tools, self._pending_action)
@@ -427,10 +437,20 @@ class BoundedAgentLoop:
         self._last_tool_result = result
         self._pending_action = None
         if not result.accepted:
-            self._transition(AgentLoopState.DECIDE, "bounded_action_rejected")
+            self._transition(
+                AgentLoopState.DECIDE,
+                "recovery_retry_rejected"
+                if is_recovery_retry
+                else "bounded_action_rejected",
+            )
             return
         if result.action_type in _OBSERVATION_ACTIONS:
-            self._transition(AgentLoopState.OBSERVE, "observation_completed")
+            self._transition(
+                AgentLoopState.OBSERVE,
+                "recovery_retry_completed"
+                if is_recovery_retry
+                else "observation_completed",
+            )
             return
         self._finish_terminal_action(result.action_type)
 
@@ -727,16 +747,18 @@ def _tool_result_from_dict(value: object) -> ToolResult:
     error: ToolError | None
     if raw_error is None:
         error = None
-    elif isinstance(raw_error, Mapping) and set(raw_error) == {
-        "code",
-        "reason_code",
-        "detail",
+    elif isinstance(raw_error, Mapping) and frozenset(raw_error) in {
+        frozenset(("code", "reason_code", "detail")),
+        frozenset(("code", "reason_code", "detail", "recovery_action")),
     }:
         error = ToolError(
             ToolErrorCode(cast(str, raw_error["code"])),
             ReasonCode(cast(str, raw_error["reason_code"])),
             cast(str, raw_error["detail"]),
         )
+        recovery_action = raw_error.get("recovery_action")
+        if recovery_action is not None and recovery_action != error.recovery_action:
+            raise ValueError("last_tool_result recovery_action is invalid")
     else:
         raise ValueError("last_tool_result error is invalid")
     return ToolResult(
@@ -799,7 +821,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--maximum-bytes", type=int, required=True)
     parser.add_argument("--maximum-elapsed-seconds", type=float, default=120.0)
     parser.add_argument("--maximum-observations", type=int, default=3)
-    parser.add_argument("--maximum-retries", type=int, default=0)
+    parser.add_argument("--maximum-retries", type=int, default=1)
     arguments = parser.parse_args(argv)
     manifest = load_tool_manifest(
         arguments.tool_manifest, project_root=settings.root_dir

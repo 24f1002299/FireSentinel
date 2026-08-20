@@ -39,6 +39,7 @@ from firesentinel.vision.engine import (
 
 TOOL_MANIFEST_SCHEMA_VERSION = 1
 MAXIMUM_OBSERVATIONS = 3
+MAXIMUM_RECOVERY_RETRIES = 1
 _IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9_-]{0,79}\Z")
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _OBSERVATION_ACTIONS = frozenset(
@@ -73,7 +74,52 @@ class ToolErrorCode(StrEnum):
     TERMINAL = "terminal"
     SOURCE_UNAVAILABLE = "source_unavailable"
     SOURCE_CORRUPT = "source_corrupt"
+    INSUFFICIENT_DISK = "insufficient_disk"
+    ARTIFACT_WRITE_FAILED = "artifact_write_failed"
     EVIDENCE_FAILED = "evidence_failed"
+
+
+_RECOVERY_ACTIONS = {
+    ToolErrorCode.OBSERVATION_NOT_ALLOWED: (
+        "Use only an observation listed in this case's allowlist."
+    ),
+    ToolErrorCode.ACTION_NOT_ALLOWED: (
+        "Use the action assigned to the allowlisted observation."
+    ),
+    ToolErrorCode.OBSERVATION_BUDGET_EXHAUSTED: (
+        "Do not request another observation; review the bounded evidence already "
+        "recorded."
+    ),
+    ToolErrorCode.BYTE_BUDGET_EXHAUSTED: (
+        "Do not download or substitute data. Start a new approved bounded run only "
+        "if its byte limit is changed deliberately."
+    ),
+    ToolErrorCode.ELAPSED_TIME_EXHAUSTED: (
+        "Do not continue this run. Inspect the recorded timeout and start a fresh "
+        "approved run only if its time limit is changed deliberately."
+    ),
+    ToolErrorCode.TERMINAL: "No further action is permitted for this terminal case.",
+    ToolErrorCode.SOURCE_UNAVAILABLE: (
+        "Restore the exact allowlisted source to the verified local cache, then "
+        "start a fresh bounded run."
+    ),
+    ToolErrorCode.SOURCE_CORRUPT: (
+        "Replace the cached source with the exact expected bytes and SHA-256, then "
+        "start a fresh bounded run."
+    ),
+    ToolErrorCode.INSUFFICIENT_DISK: (
+        "Free local disk space or choose an approved artifact location, then start "
+        "a fresh bounded run."
+    ),
+    ToolErrorCode.ARTIFACT_WRITE_FAILED: (
+        "Check the local artifact location and permissions; do not use a partial "
+        "artifact. Start a fresh bounded run after correcting it."
+    ),
+    ToolErrorCode.EVIDENCE_FAILED: (
+        "Inspect the recorded configuration or source error and start a fresh "
+        "bounded run only after it is corrected."
+    ),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,12 +130,25 @@ class ToolError:
     reason_code: ReasonCode
     detail: str
 
+    @property
+    def recovery_action(self) -> str:
+        """Return the fixed, safe recovery step for this failure category."""
+
+        return recovery_action_for_tool_error(self.code)
+
     def to_dict(self) -> dict[str, str]:
         return {
             "code": self.code.value,
             "reason_code": self.reason_code.value,
             "detail": self.detail,
+            "recovery_action": self.recovery_action,
         }
+
+
+def recovery_action_for_tool_error(code: ToolErrorCode | str) -> str:
+    """Return fixed reviewer guidance without exposing an unbounded next action."""
+
+    return _RECOVERY_ACTIONS[ToolErrorCode(code)]
 
 
 @dataclass(frozen=True, slots=True)
@@ -287,7 +346,7 @@ class BoundedObservationTools:
         maximum_bytes: int,
         maximum_elapsed_seconds: float,
         maximum_observations: int = MAXIMUM_OBSERVATIONS,
-        maximum_retries: int = 0,
+        maximum_retries: int = MAXIMUM_RECOVERY_RETRIES,
         initial_selected_observation_ids: tuple[str, ...] = (),
         initial_evidence_ids: tuple[str, ...] = (),
         initial_used_retries: int = 0,
@@ -444,6 +503,14 @@ class BoundedObservationTools:
 
         return self._budget()
 
+    def consume_recovery_retry(self) -> bool:
+        """Consume the one recorded retry before its replacement observation runs."""
+
+        if self._used_retries >= self._maximum_retries:
+            return False
+        self._used_retries += 1
+        return True
+
     def evidence_artifact_directory(self, evidence_id: str) -> Path:
         """Return one accepted evidence packet directory for loop analysis."""
 
@@ -593,15 +660,20 @@ class BoundedObservationTools:
                 ),
             )
         except EvidenceJobFailure as error:
+            error_code = ToolErrorCode.EVIDENCE_FAILED
+            if error.reason_code is ReasonCode.TIMEOUT:
+                error_code = ToolErrorCode.ELAPSED_TIME_EXHAUSTED
+            elif error.reason_code is ReasonCode.ARTIFACT_WRITE_FAILED:
+                error_code = (
+                    ToolErrorCode.INSUFFICIENT_DISK
+                    if _mentions_insufficient_disk(error.detail)
+                    else ToolErrorCode.ARTIFACT_WRITE_FAILED
+                )
             return self._rejected(
                 action_type,
                 observation_id,
                 ToolError(
-                    (
-                        ToolErrorCode.ELAPSED_TIME_EXHAUSTED
-                        if error.reason_code is ReasonCode.TIMEOUT
-                        else ToolErrorCode.EVIDENCE_FAILED
-                    ),
+                    error_code,
                     error.reason_code,
                     error.detail,
                 ),
@@ -795,6 +867,13 @@ class _ElapsedLimitError(RuntimeError):
     """Private sentinel preventing a partial observation-state update."""
 
 
+def _mentions_insufficient_disk(detail: str) -> bool:
+    """Identify the portable no-space wording emitted by the evidence engine."""
+
+    lowered = detail.lower()
+    return "insufficient disk" in lowered or "no space left" in lowered
+
+
 def load_tool_manifest(path: Path, *, project_root: Path) -> ToolManifest:
     """Load a tool manifest while refusing evaluation-only label paths."""
 
@@ -904,6 +983,7 @@ def _timestamp(value: datetime) -> str:
 
 __all__ = [
     "MAXIMUM_OBSERVATIONS",
+    "MAXIMUM_RECOVERY_RETRIES",
     "TOOL_MANIFEST_SCHEMA_VERSION",
     "AllowedObservation",
     "BoundedObservationTools",
@@ -913,4 +993,5 @@ __all__ = [
     "ToolResult",
     "ToolSource",
     "load_tool_manifest",
+    "recovery_action_for_tool_error",
 ]

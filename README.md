@@ -79,6 +79,23 @@ stories without any source files:
 The page is a local review aid only. Its thermal evidence and outcomes must
 not be used for emergency response, dispatch, or a wildfire conclusion.
 
+## Predictable failure handling
+
+The bounded loop records missing or hash-mismatched cached sources, elapsed
+time limits, insufficient disk space, artifact-write failures, unusable
+frames, and failed geographic alignment as closed reason/error codes. Cache,
+timeout, and artifact failures abstain; they never use a substitute source or
+partial output. An unusable or unaligned observation may consume one recorded
+allowlisted replacement retry, then the loop abstains if the replacement is
+still inadequate.
+
+Every tool error stored in the loop journal includes fixed recovery guidance.
+The reviewer also discovers a terminal journal that has no completed evidence
+packet, so a reviewer can see its error and recovery action rather than
+mistaking an incomplete artifact for evidence. Local evidence packets are
+shown only when their completion marker, packet hash, and all declared asset
+hashes verify successfully.
+
 ## Layout
 
 ```text

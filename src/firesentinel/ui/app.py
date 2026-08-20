@@ -224,6 +224,14 @@ def _render_limits_and_provenance(case: ReviewerCase) -> None:
             st.dataframe(list(case.budget), width="stretch", hide_index=True)
         else:
             st.info("No bounded-loop budget was recorded for this packet.")
+        st.subheader("Errors and recovery")
+        if case.errors:
+            for error in case.errors:
+                st.error(error)
+            for recovery_action in case.recovery_actions:
+                st.info(f"Recovery action: {recovery_action}")
+        else:
+            st.info("No bounded-tool error was recorded for this case.")
         st.subheader("Warnings and limitations")
         if case.warnings:
             for warning in case.warnings:

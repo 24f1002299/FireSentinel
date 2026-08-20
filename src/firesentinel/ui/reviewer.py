@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +19,7 @@ import numpy.typing as npt
 
 from firesentinel.agent.loop import load_last_complete_transition
 from firesentinel.agent.outcomes import explain_reason_codes
+from firesentinel.agent.tools import recovery_action_for_tool_error
 from firesentinel.core.records import ReasonCode
 
 type Scalar = str | int | float | bool | None
@@ -119,6 +121,8 @@ class ReviewerCase:
     provenance: tuple[TableRow, ...]
     budget: tuple[TableRow, ...]
     reviewer_panel_path: Path | None = None
+    errors: tuple[str, ...] = ()
+    recovery_actions: tuple[str, ...] = ()
 
     @property
     def is_demo(self) -> bool:
@@ -149,6 +153,8 @@ def discover_reviewer_cases(artifacts_root: Path) -> ReviewerCatalog:
             payload = json.loads(evidence_path.read_text(encoding="utf-8"))
             if not isinstance(payload, Mapping):
                 raise ValueError("packet root is not an object")
+            if payload.get("record_type") == "local_evidence_job":
+                _verify_completed_local_packet(evidence_path, payload)
             case = reviewer_case_from_packet(payload, evidence_path)
         except (OSError, ValueError, json.JSONDecodeError) as error:
             warnings.append(
@@ -159,10 +165,58 @@ def discover_reviewer_cases(artifacts_root: Path) -> ReviewerCatalog:
             warnings.append(f"Skipped unsupported evidence packet: {evidence_path}")
         else:
             cases.append(case)
+    known_case_ids = {case.case_id for case in cases}
+    for trace_path in sorted(root.glob("**/agent-loop.jsonl")):
+        try:
+            trace_case = _trace_only_case(trace_path)
+        except ValueError as error:
+            warnings.append(f"Skipped unreadable loop trace {trace_path}: {error}")
+            continue
+        if trace_case is not None and trace_case.case_id not in known_case_ids:
+            cases.append(trace_case)
+            known_case_ids.add(trace_case.case_id)
     return ReviewerCatalog(
         tuple(sorted(cases, key=lambda case: (case.title.lower(), case.case_id))),
         tuple(warnings),
     )
+
+
+def _verify_completed_local_packet(
+    evidence_path: Path, payload: Mapping[str, object]
+) -> None:
+    """Reject incomplete or changed local artifacts before the UI can show them."""
+
+    completion_path = evidence_path.parent / "completion.json"
+    try:
+        completion = json.loads(completion_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError("local evidence has no readable completion marker") from error
+    if not isinstance(completion, Mapping) or completion.get("record_type") != (
+        "evidence_job_completion"
+    ):
+        raise ValueError("local evidence completion marker is invalid")
+    if completion.get("schema_version") != payload.get("schema_version"):
+        raise ValueError("local evidence completion schema does not match")
+    content_hash = _text(payload.get("content_hash"))
+    expected_evidence_hash = _text(completion.get("evidence_sha256"))
+    if not content_hash or completion.get("content_hash") != content_hash:
+        raise ValueError("local evidence completion content hash does not match")
+    if sha256(evidence_path.read_bytes()).hexdigest() != expected_evidence_hash:
+        raise ValueError("local evidence bytes do not match the completion marker")
+    artifacts = _sequence(payload.get("artifacts"))
+    for item in artifacts:
+        if not isinstance(item, Mapping):
+            raise ValueError("local evidence artifact entry is invalid")
+        filename = _text(item.get("filename"))
+        expected_hash = _text(item.get("sha256"))
+        size_bytes = _integer(item.get("size_bytes"))
+        path = _safe_artifact_path(evidence_path.parent, filename)
+        if path is None or not path.is_file() or not expected_hash:
+            raise ValueError("local evidence artifact is incomplete")
+        if size_bytes is None or path.stat().st_size != size_bytes:
+            raise ValueError("local evidence artifact size does not match")
+        if sha256(path.read_bytes()).hexdigest() != expected_hash:
+            raise ValueError("local evidence artifact hash does not match")
 
 
 def reviewer_case_from_packet(
@@ -497,11 +551,12 @@ def _local_job_case(payload: Mapping[str, object], evidence_path: Path) -> Revie
     )
     persistence = _mapping(payload.get("persistence"))
     loop = _loop_summary(evidence_path, _text(payload.get("case_id")))
+    persistence_reasons = _text_items(persistence.get("reason_codes"))
     all_reasons = tuple(
         dict.fromkeys(
             reason
             for observation in observations
-            for reason in observation.reason_codes
+            for reason in (*observation.reason_codes, *persistence_reasons)
         )
     )
     outcome = loop.outcome
@@ -542,6 +597,8 @@ def _local_job_case(payload: Mapping[str, object], evidence_path: Path) -> Revie
             None,
         ),
         budget=loop.budget,
+        errors=loop.errors,
+        recovery_actions=loop.recovery_actions,
     )
 
 
@@ -554,6 +611,52 @@ class _LoopSummary:
     reason_codes: tuple[str, ...]
     warnings: tuple[str, ...]
     budget: tuple[TableRow, ...]
+    errors: tuple[str, ...] = ()
+    recovery_actions: tuple[str, ...] = ()
+
+
+def _trace_only_case(trace_path: Path) -> ReviewerCase | None:
+    """Expose a failed or interrupted loop even when no evidence packet exists."""
+
+    checkpoint = load_last_complete_transition(trace_path)
+    if checkpoint is None:
+        return None
+    case_id = _text(checkpoint.get("case_id"))
+    if not case_id:
+        return None
+    loop = _loop_summary_from_trace(trace_path, case_id)
+    outcome = loop.outcome or ReviewerOutcome(
+        "Bounded loop has no completed outcome",
+        None,
+        None,
+        "The loop stopped before producing a completed local evidence packet. "
+        "Do not treat any staged or partial files as evidence.",
+        False,
+    )
+    return ReviewerCase(
+        case_id=case_id,
+        title=f"Bounded loop: {case_id}",
+        source_kind="bounded agent trace",
+        location=(
+            "No completed evidence packet recorded location context for this trace."
+        ),
+        initial_ambiguity=(
+            "The bounded loop encountered a predictable failure before it could "
+            "publish a complete evidence packet."
+        ),
+        observations=(),
+        measurements=(),
+        outcome=outcome,
+        considered_actions=loop.considered_actions,
+        selected_action=loop.selected_action,
+        evidence_changes=loop.evidence_changes,
+        reason_codes=loop.reason_codes,
+        warnings=loop.warnings,
+        provenance=({"Item": "Loop trace", "Value": str(trace_path)},),
+        budget=loop.budget,
+        errors=loop.errors,
+        recovery_actions=loop.recovery_actions,
+    )
 
 
 def _loop_summary(evidence_path: Path, case_id: str) -> _LoopSummary:
@@ -564,6 +667,12 @@ def _loop_summary(evidence_path: Path, case_id: str) -> _LoopSummary:
     trace_path = next((path for path in candidates if path.is_file()), None)
     if trace_path is None:
         return _LoopSummary(None, (), None, (), (), (), ())
+    return _loop_summary_from_trace(trace_path, case_id)
+
+
+def _loop_summary_from_trace(trace_path: Path, case_id: str) -> _LoopSummary:
+    """Summarize the last valid checkpoint and its most recent tool failure."""
+
     try:
         checkpoint = load_last_complete_transition(trace_path)
     except ValueError as error:
@@ -620,6 +729,23 @@ def _loop_summary(evidence_path: Path, case_id: str) -> _LoopSummary:
         if isinstance(change, Mapping)
     )
     budget = _budget_rows(_mapping(checkpoint.get("budget")))
+    error_data = _latest_trace_error(trace_path)
+    errors: tuple[str, ...] = ()
+    recovery_actions: tuple[str, ...] = ()
+    if error_data:
+        error_code = _text(error_data.get("code"))
+        detail = _text(error_data.get("detail"))
+        errors = (
+            f"{error_code.replace('_', ' ') or 'bounded tool error'}: "
+            f"{detail or 'No detail was recorded.'}",
+        )
+        recovery = _text(error_data.get("recovery_action"))
+        if not recovery and error_code:
+            try:
+                recovery = recovery_action_for_tool_error(error_code)
+            except ValueError:
+                recovery = "Do not use partial evidence; inspect the recorded error."
+        recovery_actions = (recovery,) if recovery else ()
     return _LoopSummary(
         outcome,
         tuple(considered),
@@ -628,7 +754,30 @@ def _loop_summary(evidence_path: Path, case_id: str) -> _LoopSummary:
         raw_reasons,
         (),
         budget,
+        errors,
+        recovery_actions,
     )
+
+
+def _latest_trace_error(trace_path: Path) -> Mapping[str, object]:
+    """Return the last persisted tool error, even after a terminal abstention."""
+
+    latest: Mapping[str, object] = {}
+    try:
+        lines = trace_path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return latest
+    for line in lines:
+        try:
+            record = json.loads(line)
+        except json.JSONDecodeError:
+            break
+        if not isinstance(record, Mapping):
+            continue
+        error = _mapping(_mapping(record.get("last_tool_result")).get("error"))
+        if error:
+            latest = error
+    return latest
 
 
 def _real_observation(

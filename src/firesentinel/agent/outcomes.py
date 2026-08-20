@@ -178,6 +178,7 @@ class OutcomeEvidence:
 
         persistence_count = persistence.get("persistence_count")
         persistence_confidence = persistence.get("confidence")
+        persistence_reasons = persistence.get("reason_codes", [])
         if (
             isinstance(persistence_count, bool)
             or not isinstance(persistence_count, int)
@@ -188,6 +189,12 @@ class OutcomeEvidence:
             persistence_confidence, (int, float)
         ):
             raise ValueError("completed persistence confidence is invalid")
+        if not isinstance(persistence_reasons, list):
+            raise ValueError("completed persistence reasons are invalid")
+        try:
+            reasons.extend(ReasonCode(reason) for reason in persistence_reasons)
+        except ValueError as error:
+            raise ValueError("completed persistence reason is unknown") from error
         return cls(
             observation_count=len(observations),
             usable_observation_count=usable_observation_count,

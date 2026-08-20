@@ -16,6 +16,8 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 
+from firesentinel.core.records import ReasonCode
+
 Float32Array = npt.NDArray[np.float32]
 Float64Array = npt.NDArray[np.float64]
 MaskArray = npt.NDArray[np.bool]
@@ -280,6 +282,7 @@ class TemporalPersistenceResult:
     temperature_trend_kelvin_per_observation: float | None
     disappeared: bool
     confidence: float
+    reason_codes: tuple[ReasonCode, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.common_grid, GeospatialGrid):
@@ -302,6 +305,10 @@ class TemporalPersistenceResult:
             raise ValueError("mean_intersection_over_union must be within [0, 1]")
         object.__setattr__(self, "confidence", confidence)
         object.__setattr__(self, "mean_intersection_over_union", iou)
+        reasons = tuple(ReasonCode(reason) for reason in self.reason_codes)
+        if len(reasons) != len(set(reasons)):
+            raise ValueError("reason_codes must not repeat")
+        object.__setattr__(self, "reason_codes", reasons)
 
     def to_dict(self) -> dict[str, object]:
         """Return direct, reviewer-facing persistence measurements."""
@@ -316,6 +323,7 @@ class TemporalPersistenceResult:
             ),
             "disappeared": self.disappeared,
             "confidence": self.confidence,
+            "reason_codes": [reason.value for reason in self.reason_codes],
             "matches": [match.to_dict() for match in self.matches],
             "tracks": [track.to_dict() for track in self.tracks],
         }
@@ -411,6 +419,12 @@ def measure_temporal_persistence(
             else 0.0
         )
         confidence = mean_iou * continuity_fraction
+    alignment_failed = any(
+        observation is not None
+        and aligned_observation is not None
+        and not np.any(aligned_observation.valid_mask)
+        for observation, aligned_observation in zip(observations, aligned, strict=True)
+    )
     return TemporalPersistenceResult(
         common_grid=target_grid,
         aligned_observations=aligned,
@@ -423,6 +437,7 @@ def measure_temporal_persistence(
         temperature_trend_kelvin_per_observation=temperature_trend,
         disappeared=disappeared,
         confidence=confidence,
+        reason_codes=(ReasonCode.ALIGNMENT_FAILED,) if alignment_failed else (),
     )
 
 
