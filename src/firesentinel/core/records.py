@@ -65,6 +65,8 @@ class ReasonCode(StrEnum):
     BANDS_CONFLICT = "bands_conflict"
     BUDGET_EXHAUSTED = "budget_exhausted"
     TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
+    ARTIFACT_WRITE_FAILED = "artifact_write_failed"
     CONFIGURATION_INVALID = "configuration_invalid"
     HUMAN_REVIEW_REQUIRED = "human_review_required"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"

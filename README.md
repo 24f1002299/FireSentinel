@@ -169,6 +169,27 @@ intersection-over-union limits. The result reports track count, overlap, area
 and temperature trend, disappearance, and a bounded confidence. A `None`
 observation is an explicit continuity break, never an interpolated look.
 
+## Deterministic evidence jobs
+
+`firesentinel.vision.engine` combines catalog provenance, calibrated C07/C14
+crops, mask-aware preparation, quality gating, contextual anomalies, and
+persistence into one local content-addressed packet. It accepts only local
+source paths selected by a prior catalog lookup; it performs no downloads.
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks evidence `
+  --job path\to\evidence-job.json `
+  --timeout-seconds 120
+```
+
+The job manifest contains `case_id`, crop and tile parameters, and at least two
+observations with C07/C14 `catalog_key` plus `source_path` entries. Each run
+writes `evidence.json`, NPY measurement/mask arrays, annotated overlays, and a
+completion marker beneath `artifacts/{case_id}/{content_hash}/`. Runtime
+timings do not affect the content hash; an identical job reuses the completed
+packet. Timeout, cancellation, corrupt inputs, and failed writes are
+classified, and staged files are never published as completed artifacts.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for

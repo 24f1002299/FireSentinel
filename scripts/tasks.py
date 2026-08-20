@@ -141,6 +141,21 @@ def slice_replay(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.vision.real_event", "--verify"])
 
 
+def evidence_job(arguments: argparse.Namespace) -> int:
+    command = [
+        sys.executable,
+        "-m",
+        "firesentinel.vision.engine",
+        "--job",
+        str(arguments.job),
+        "--artifacts-dir",
+        str(arguments.artifacts_dir),
+    ]
+    if arguments.timeout_seconds is not None:
+        command.extend(["--timeout-seconds", str(arguments.timeout_seconds)])
+    return _run(command)
+
+
 def ui(_: argparse.Namespace) -> int:
     return _run(
         [sys.executable, "-m", "streamlit", "run", "src/firesentinel/ui/app.py"]
@@ -198,6 +213,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     "slice": (
         "Recreate the pinned real-event OpenCV evidence from verified cached sources.",
         slice_replay,
+    ),
+    "evidence": (
+        "Run one deterministic local C07/C14 evidence job from a JSON manifest.",
+        evidence_job,
     ),
     "ui": ("Launch the Streamlit UI shell.", ui),
     "clean": ("Remove generated tool caches.", clean),
@@ -316,6 +335,21 @@ def main(argv: list[str] | None = None) -> int:
                 "--manifest",
                 type=Path,
                 help="frozen development manifest; test and stress are rejected",
+            )
+        if name == "evidence":
+            subparser.add_argument(
+                "--job", type=Path, required=True, help="local evidence job JSON"
+            )
+            subparser.add_argument(
+                "--artifacts-dir",
+                type=Path,
+                default=ROOT / "artifacts",
+                help="root directory for content-addressed evidence artifacts",
+            )
+            subparser.add_argument(
+                "--timeout-seconds",
+                type=float,
+                help="finite evidence-job wall-clock budget",
             )
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)

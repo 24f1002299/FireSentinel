@@ -56,3 +56,19 @@ Use `canonical_content_hash(trace)` for the packet hash and
 `artifact_directory(settings.artifacts_dir, trace.case.case_id, trace_hash)`
 to get the safe path. The helper only derives the directory; later writers can
 create it atomically after their artifacts are complete.
+
+## Local evidence-engine packets
+
+Day 17 also emits a separate `local_evidence_job` packet from
+`firesentinel.vision.engine`. Its content hash covers the path-free job
+configuration, selected catalog keys, source/crop provenance, stable tile
+metadata, quality/anomaly/persistence measurements, warnings, and hashes of
+all saved NPY/PNG assets. Wall-clock timings are included for review but are
+excluded from the content-addressed ID.
+
+The engine first writes all assets to a private staging directory. It writes
+`completion.json` only after `evidence.json` and every declared asset is ready,
+then atomically renames the staging directory to the content-addressed final
+path. Existing packets are hash-verified before reuse. Thus timeout,
+cancellation, source failure, or a write failure cannot be treated as a
+completed packet.

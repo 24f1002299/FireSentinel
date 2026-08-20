@@ -54,12 +54,50 @@ from firesentinel.vision.tiles import (
     prepare_tile,
 )
 
+_ENGINE_EXPORTS = frozenset(
+    {
+        "EVIDENCE_SCHEMA_VERSION",
+        "JOB_SCHEMA_VERSION",
+        "EvidenceJob",
+        "EvidenceJobCancelled",
+        "EvidenceJobFailure",
+        "EvidenceJobObservation",
+        "EvidenceJobResult",
+        "EvidenceJobSource",
+        "EvidenceJobTimeout",
+        "load_evidence_job",
+        "run_evidence_job",
+    }
+)
+
+
+def __getattr__(name: str) -> object:
+    """Lazily expose the CLI module without preloading it for ``python -m``."""
+
+    if name in _ENGINE_EXPORTS:
+        from firesentinel.vision import engine
+
+        return getattr(engine, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
     "DEVELOPMENT_CONTEXTUAL_ANOMALY_PARAMETERS",
     "ContextualAnomalyComponent",
     "ContextualAnomalyParameters",
     "ContextualAnomalyResult",
     "extract_contextual_anomalies",
+    "EVIDENCE_SCHEMA_VERSION",
+    "JOB_SCHEMA_VERSION",
+    "EvidenceJob",
+    "EvidenceJobCancelled",
+    "EvidenceJobFailure",
+    "EvidenceJobObservation",
+    "EvidenceJobResult",
+    "EvidenceJobSource",
+    "EvidenceJobTimeout",
+    "load_evidence_job",
+    "run_evidence_job",
     "FIXTURE_SEED",
     "FIXTURE_SHAPE",
     "FIXTURE_VERSION",
