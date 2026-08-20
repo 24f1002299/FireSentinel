@@ -190,6 +190,30 @@ timings do not affect the content hash; an identical job reuses the completed
 packet. Timeout, cancellation, corrupt inputs, and failed writes are
 classified, and staged files are never published as completed artifacts.
 
+## Development baseline comparison
+
+`firesentinel.evaluation.runner` provides the fixed comparisons before an
+adaptive policy is introduced. It accepts only the frozen development manifest
+and resolves each manifest source through the verified local cache; it never
+downloads a missing source. Both modes use the same crop policy, tile and
+threshold configuration, evidence engine, and cautious outcome function.
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks baselines `
+  --evidence-template path\to\evidence-job.json `
+  --crop-half-height-degrees 0.25 `
+  --crop-half-width-degrees 0.25
+```
+
+The one-shot baseline always selects the manifest's `initial` C07 object and
+its prescribed `alternate` C14 contextual companion. The fixed bundle always
+selects `baseline`, `initial`, `later` (C07) and `alternate` (C14) for every
+case. The report records the selected source objects, Channel 7 count, paired
+evidence time steps, bytes, zero network-download bytes, latency, outcomes,
+errors, and content-addressed evidence IDs in the same schema for both modes.
+The template supplies the existing Day 17 tile/quality/anomaly/persistence
+settings; its own source paths are not replayed for the benchmark cases.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for

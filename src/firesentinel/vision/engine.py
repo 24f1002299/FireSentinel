@@ -190,6 +190,7 @@ class EvidenceJob:
     crop_parameters: CropParameters
     tile_parameters: TilePreparationParameters
     observations: tuple[EvidenceJobObservation, ...]
+    allow_single_observation: bool = False
     anomaly_parameters: ContextualAnomalyParameters = (
         DEVELOPMENT_CONTEXTUAL_ANOMALY_PARAMETERS
     )
@@ -208,11 +209,19 @@ class EvidenceJob:
                 "tile_parameters.target_shape must be null so tile pixels retain "
                 "crop geolocation"
             )
-        if len(self.observations) < 2 or not all(
+        if not isinstance(self.allow_single_observation, bool):
+            raise ValueError("allow_single_observation must be a boolean")
+        minimum_observations = 1 if self.allow_single_observation else 2
+        if len(self.observations) < minimum_observations or not all(
             isinstance(observation, EvidenceJobObservation)
             for observation in self.observations
         ):
-            raise ValueError("an evidence job requires at least two observations")
+            minimum_text = "one" if minimum_observations == 1 else "two"
+            raise ValueError(
+                "an evidence job requires at least "
+                f"{minimum_text} observation"
+                f"{'s' if minimum_observations != 1 else ''}"
+            )
         identifiers = tuple(
             observation.observation_id for observation in self.observations
         )
@@ -237,6 +246,7 @@ class EvidenceJob:
             "observations",
         }
         optional = {
+            "allow_single_observation",
             "anomaly_parameters",
             "quality_thresholds",
             "persistence_parameters",
@@ -261,6 +271,9 @@ class EvidenceJob:
                 )
                 for observation in raw_observations
             ),
+            allow_single_observation=cast(
+                bool, value.get("allow_single_observation", False)
+            ),
             anomaly_parameters=_anomaly_parameters_from_dict(
                 value.get("anomaly_parameters")
             ),
@@ -280,6 +293,7 @@ class EvidenceJob:
             "case_id": self.case_id,
             "crop_parameters": self.crop_parameters.to_dict(),
             "tile_parameters": self.tile_parameters.to_dict(),
+            "allow_single_observation": self.allow_single_observation,
             "anomaly_parameters": self.anomaly_parameters.to_dict(),
             "quality_thresholds": self.quality_thresholds.to_dict(),
             "persistence_parameters": self.persistence_parameters.to_dict(),

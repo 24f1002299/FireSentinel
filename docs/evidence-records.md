@@ -72,3 +72,21 @@ then atomically renames the staging directory to the content-addressed final
 path. Existing packets are hash-verified before reuse. Thus timeout,
 cancellation, source failure, or a write failure cannot be treated as a
 completed packet.
+
+## Development baseline reports
+
+`firesentinel.evaluation.runner` writes a `development_evidence_baselines`
+report containing parallel `one_shot` and `fixed_bundle` sections. Each
+per-case entry has the identical outcome, observation, evidence, resource, and
+error fields. `observation_count` counts selected source objects while
+`channel7_observation_count` makes the one predetermined C07 observation
+explicit. The fixed bundle selects the pinned C07 `baseline`, `initial`, and
+`later` sources plus the pinned C14 `alternate` source for every case.
+
+The report references completed Day 17 evidence packets by content hash and
+artifact directory. `selected_source_bytes` is the immutable manifest sum and
+`downloaded_bytes` is always zero: baseline replay only calls
+`VerifiedSourceCache.require_cached`, which refuses a cache miss instead of
+performing a network request. Per-case failures retain a classified error and
+do not prevent the remaining development cases or the other mode from being
+reported.

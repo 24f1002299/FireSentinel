@@ -156,6 +156,29 @@ def evidence_job(arguments: argparse.Namespace) -> int:
     return _run(command)
 
 
+def baselines(arguments: argparse.Namespace) -> int:
+    command = [
+        sys.executable,
+        "-m",
+        "firesentinel.evaluation.runner",
+        "--evidence-template",
+        str(arguments.evidence_template),
+    ]
+    for option in (
+        "manifest",
+        "source_cache",
+        "artifacts_dir",
+        "output",
+        "crop_half_height_degrees",
+        "crop_half_width_degrees",
+        "timeout_seconds",
+    ):
+        value = getattr(arguments, option)
+        if value is not None:
+            command.extend([f"--{option.replace('_', '-')}", str(value)])
+    return _run(command)
+
+
 def ui(_: argparse.Namespace) -> int:
     return _run(
         [sys.executable, "-m", "streamlit", "run", "src/firesentinel/ui/app.py"]
@@ -217,6 +240,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     "evidence": (
         "Run one deterministic local C07/C14 evidence job from a JSON manifest.",
         evidence_job,
+    ),
+    "baselines": (
+        "Run comparable one-shot and fixed-bundle development baselines.",
+        baselines,
     ),
     "ui": ("Launch the Streamlit UI shell.", ui),
     "clean": ("Remove generated tool caches.", clean),
@@ -351,6 +378,34 @@ def main(argv: list[str] | None = None) -> int:
                 type=float,
                 help="finite evidence-job wall-clock budget",
             )
+        if name == "baselines":
+            subparser.add_argument(
+                "--manifest",
+                type=Path,
+                help="frozen development manifest; test and stress are rejected",
+            )
+            subparser.add_argument(
+                "--evidence-template",
+                type=Path,
+                required=True,
+                help="Day 17 job whose evidence configuration is reused",
+            )
+            subparser.add_argument(
+                "--source-cache",
+                type=Path,
+                help="verified local source cache; no network fallback",
+            )
+            subparser.add_argument(
+                "--artifacts-dir",
+                type=Path,
+                help="content-addressed baseline evidence artifact root",
+            )
+            subparser.add_argument(
+                "--output", type=Path, help="baseline comparison JSON report"
+            )
+            subparser.add_argument("--crop-half-height-degrees", type=float)
+            subparser.add_argument("--crop-half-width-degrees", type=float)
+            subparser.add_argument("--timeout-seconds", type=float)
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)
     task_name = arguments.task
