@@ -99,3 +99,13 @@ The download command accepts pinned `cases`/`sources` manifest entries; see
 declared source size, transfer bytes, verified checksum, elapsed time, retry
 count, and whether the result was a cache hit. Case cleanup removes exactly one
 case's references and retains blobs that another case still uses.
+
+## Calibrated GOES crops
+
+`firesentinel.data.goes_crop` converts a verified cached GOES `CMI` object into
+a compact calibrated regional artifact. Pass its `DownloadReceipt.cache_path`,
+non-wrapping WGS84 bounds, and padding policy; the stage decodes the source
+scale/offset itself, masks fill/range/DQF/off-Earth pixels, and clips padding at
+the source edge. The resulting deterministic `.npz` contains calibrated data,
+invalid mask, DQF, per-pixel latitude/longitude, scan coordinates, timing,
+projection/calibration metadata, source hash, and a canonical content checksum.
