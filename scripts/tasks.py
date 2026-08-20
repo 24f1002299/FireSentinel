@@ -179,6 +179,30 @@ def baselines(arguments: argparse.Namespace) -> int:
     return _run(command)
 
 
+def agent_loop(arguments: argparse.Namespace) -> int:
+    command = [
+        sys.executable,
+        "-m",
+        "firesentinel.agent.loop",
+        "--tool-manifest",
+        str(arguments.tool_manifest),
+        "--maximum-bytes",
+        str(arguments.maximum_bytes),
+    ]
+    for option in (
+        "trace",
+        "source_cache",
+        "artifacts_dir",
+        "maximum_elapsed_seconds",
+        "maximum_observations",
+        "maximum_retries",
+    ):
+        value = getattr(arguments, option)
+        if value is not None:
+            command.extend([f"--{option.replace('_', '-')}", str(value)])
+    return _run(command)
+
+
 def ui(_: argparse.Namespace) -> int:
     return _run(
         [sys.executable, "-m", "streamlit", "run", "src/firesentinel/ui/app.py"]
@@ -244,6 +268,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     "baselines": (
         "Run comparable one-shot and fixed-bundle development baselines.",
         baselines,
+    ),
+    "agent-loop": (
+        "Run or resume one checkpointed bounded local investigation.",
+        agent_loop,
     ),
     "ui": ("Launch the Streamlit UI shell.", ui),
     "clean": ("Remove generated tool caches.", clean),
@@ -406,6 +434,31 @@ def main(argv: list[str] | None = None) -> int:
             subparser.add_argument("--crop-half-height-degrees", type=float)
             subparser.add_argument("--crop-half-width-degrees", type=float)
             subparser.add_argument("--timeout-seconds", type=float)
+        if name == "agent-loop":
+            subparser.add_argument(
+                "--tool-manifest",
+                type=Path,
+                required=True,
+                help="bounded observation tool manifest for one case",
+            )
+            subparser.add_argument(
+                "--maximum-bytes",
+                type=int,
+                required=True,
+                help="total verified source-byte budget",
+            )
+            subparser.add_argument(
+                "--trace", type=Path, help="JSONL transition journal"
+            )
+            subparser.add_argument(
+                "--source-cache", type=Path, help="verified local source cache"
+            )
+            subparser.add_argument(
+                "--artifacts-dir", type=Path, help="evidence and trace artifact root"
+            )
+            subparser.add_argument("--maximum-elapsed-seconds", type=float)
+            subparser.add_argument("--maximum-observations", type=int)
+            subparser.add_argument("--maximum-retries", type=int)
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)
     task_name = arguments.task

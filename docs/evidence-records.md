@@ -123,6 +123,22 @@ contextual evidence selects a deterministic follow-up. The selected action is
 only executed by `apply_policy_decision`, which delegates to the bounded tool
 surface described above.
 
+## Checkpointed agent-loop journal
+
+Day 22 adds `firesentinel.agent.loop`, whose JSONL journal is distinct from the
+terminal core `Trace` record. Every journal line is a complete state snapshot:
+it includes the state transition, selected observations, cumulative evidence
+IDs, `Budget`, analysis facts, selected policy action, most recent tool reply,
+and any terminal outcome. A resume reads the last complete line and restores
+the bounded tool session from those facts.
+
+The journal is flushed and synced after each line. A truncated final line is
+ignored while loading and removed before the next append; a malformed earlier
+line is rejected. This lets an interrupted replay continue without selecting a
+completed observation again. If interruption occurred after an action was
+checkpointed but before its result was recorded, the content-addressed evidence
+job may be replayed, but it reuses the same completed artifact.
+
 ## Calibrated outcomes
 
 `firesentinel.agent.outcomes` is the shared terminal calibration layer for

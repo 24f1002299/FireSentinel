@@ -117,6 +117,10 @@ class OutcomeEvidence:
                 raise ValueError(f"{field} must be a non-negative integer")
         if self.usable_observation_count > self.observation_count:
             raise ValueError("usable_observation_count cannot exceed observation_count")
+        if self.persistence_count > self.usable_observation_count:
+            raise ValueError("persistence_count cannot exceed usable_observation_count")
+        if self.persistence_count and self.candidate_region_count == 0:
+            raise ValueError("persistence_count requires at least one candidate region")
         confidence = self.persistence_confidence
         if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
             raise ValueError("persistence_confidence must be a finite confidence")

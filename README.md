@@ -261,6 +261,27 @@ Every outcome includes reason codes and fixed plain-language explanation
 templates for reviewers. These are thermal-evidence workflow outcomes only;
 they do not establish incident type, origin, extent, or operational status.
 
+## Checkpointed local agent loop
+
+`firesentinel.agent.loop` combines observation, evidence analysis, transparent
+policy selection, bounded tool use, and terminal calibration in one explicit
+state machine. It writes a complete JSONL checkpoint after every transition:
+`observe`, `analyze`, `decide`, `act`, `finalize`, `abstain`, `review`, or
+`failure`. Re-running the same command resumes from the last complete record;
+an unfinished final write is discarded before the next checkpoint is appended.
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks agent-loop `
+  --tool-manifest path\to\tool-manifest.json `
+  --maximum-bytes 500000000
+```
+
+The resumed bounded-tool session restores its selected observations, evidence
+IDs, elapsed time, bytes, and retry counts. Already completed observation IDs
+are unavailable to the resumed policy, and a restart while an action was in
+progress reruns only that content-addressed evidence job, which reuses its
+existing artifact rather than publishing a duplicate.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for

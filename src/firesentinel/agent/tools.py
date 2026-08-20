@@ -287,6 +287,11 @@ class BoundedObservationTools:
         maximum_bytes: int,
         maximum_elapsed_seconds: float,
         maximum_observations: int = MAXIMUM_OBSERVATIONS,
+        maximum_retries: int = 0,
+        initial_selected_observation_ids: tuple[str, ...] = (),
+        initial_evidence_ids: tuple[str, ...] = (),
+        initial_used_retries: int = 0,
+        initial_elapsed_seconds: float = 0.0,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         if not isinstance(manifest, ToolManifest):
@@ -303,6 +308,10 @@ class BoundedObservationTools:
             raise ValueError("maximum_bytes must be an integer")
         if maximum_bytes < 0:
             raise ValueError("maximum_bytes must be non-negative")
+        if isinstance(maximum_retries, bool) or not isinstance(maximum_retries, int):
+            raise ValueError("maximum_retries must be an integer")
+        if maximum_retries < 0:
+            raise ValueError("maximum_retries must be non-negative")
         if isinstance(maximum_elapsed_seconds, bool) or not isinstance(
             maximum_elapsed_seconds, (int, float)
         ):
@@ -312,6 +321,71 @@ class BoundedObservationTools:
             or maximum_elapsed_seconds <= 0
         ):
             raise ValueError("maximum_elapsed_seconds must be a finite positive number")
+        selected_ids = tuple(initial_selected_observation_ids)
+        evidence_ids = tuple(initial_evidence_ids)
+        if len(selected_ids) != len(evidence_ids):
+            raise ValueError(
+                "initial_selected_observation_ids and initial_evidence_ids must align"
+            )
+        if len(selected_ids) > maximum_observations:
+            raise ValueError(
+                "initial selected observations exceed maximum_observations"
+            )
+        if len(selected_ids) != len(set(selected_ids)):
+            raise ValueError("initial_selected_observation_ids must not repeat")
+        if len(evidence_ids) != len(set(evidence_ids)):
+            raise ValueError("initial_evidence_ids must not repeat")
+        if not all(
+            isinstance(item, str) and _IDENTIFIER.fullmatch(item)
+            for item in selected_ids
+        ):
+            raise ValueError("initial_selected_observation_ids are invalid")
+        if not all(
+            isinstance(item, str) and _IDENTIFIER.fullmatch(item)
+            for item in evidence_ids
+        ):
+            raise ValueError("initial_evidence_ids are invalid")
+        if (
+            isinstance(initial_used_retries, bool)
+            or not isinstance(initial_used_retries, int)
+            or not 0 <= initial_used_retries <= maximum_retries
+        ):
+            raise ValueError("initial_used_retries must remain within maximum_retries")
+        if isinstance(initial_elapsed_seconds, bool) or not isinstance(
+            initial_elapsed_seconds, (int, float)
+        ):
+            raise ValueError(
+                "initial_elapsed_seconds must be a finite non-negative number"
+            )
+        elapsed_seconds = float(initial_elapsed_seconds)
+        if (
+            not math.isfinite(elapsed_seconds)
+            or not 0.0 <= elapsed_seconds <= maximum_elapsed_seconds
+        ):
+            raise ValueError(
+                "initial_elapsed_seconds must remain within maximum_elapsed_seconds"
+            )
+        available_ids = set(manifest.observations_by_id)
+        if not set(selected_ids).issubset(available_ids):
+            raise ValueError("initial selected observations are not allowlisted")
+        initial_source_ids = {
+            source.source_id
+            for observation_id in selected_ids
+            for source in (
+                manifest.observations_by_id[observation_id].channel7,
+                manifest.observations_by_id[observation_id].channel14,
+            )
+        }
+        sources_by_id = {
+            source.source_id: source
+            for observation in manifest.observations
+            for source in (observation.channel7, observation.channel14)
+        }
+        if (
+            sum(sources_by_id[item].size_bytes for item in initial_source_ids)
+            > maximum_bytes
+        ):
+            raise ValueError("initial selected observations exceed maximum_bytes")
         self._manifest = manifest
         self._project_root = Path(project_root).resolve()
         self._source_cache_root = Path(source_cache_root).resolve()
@@ -322,11 +396,13 @@ class BoundedObservationTools:
         self._maximum_observations = maximum_observations
         self._maximum_bytes = maximum_bytes
         self._maximum_elapsed_seconds = float(maximum_elapsed_seconds)
+        self._maximum_retries = maximum_retries
+        self._used_retries = initial_used_retries
         self._clock = clock
-        self._started = self._clock()
-        self._selected_ids: list[str] = []
-        self._evidence_ids: list[str] = []
-        self._used_source_ids: set[str] = set()
+        self._started = self._clock() - elapsed_seconds
+        self._selected_ids = list(selected_ids)
+        self._evidence_ids = list(evidence_ids)
+        self._used_source_ids = initial_source_ids
         self._terminal_action: ActionType | None = None
         self._terminal_results: dict[ActionType, ToolResult] = {}
         self._validate_source_scope()
@@ -336,6 +412,44 @@ class BoundedObservationTools:
         """Return the sole case visible to this session."""
 
         return self._manifest.case
+
+    @property
+    def selected_observation_ids(self) -> tuple[str, ...]:
+        """Return accepted observation IDs in their original execution order."""
+
+        return tuple(self._selected_ids)
+
+    @property
+    def evidence_ids(self) -> tuple[str, ...]:
+        """Return cumulative completed evidence IDs in execution order."""
+
+        return tuple(self._evidence_ids)
+
+    @property
+    def available_observations(self) -> tuple[AllowedObservation, ...]:
+        """Return remaining allowlisted observations without exposing source paths."""
+
+        if self._terminal_action is not None:
+            return ()
+        selected = set(self._selected_ids)
+        return tuple(
+            item
+            for item in self._manifest.observations
+            if item.observation_id not in selected
+        )
+
+    @property
+    def budget(self) -> Budget:
+        """Return the current bounded-resource usage for trace persistence."""
+
+        return self._budget()
+
+    def evidence_artifact_directory(self, evidence_id: str) -> Path:
+        """Return one accepted evidence packet directory for loop analysis."""
+
+        if evidence_id not in self._evidence_ids:
+            raise ValueError("evidence_id is not part of this bounded session")
+        return self._artifacts_root / self._manifest.case.case_id / evidence_id
 
     def next_timestamp(self, observation_id: str) -> ToolResult:
         """Request one manifest-pinned later C07 observation."""
@@ -672,8 +786,8 @@ class BoundedObservationTools:
             used_elapsed_seconds=min(
                 self._elapsed_seconds(), self._maximum_elapsed_seconds
             ),
-            max_retries=0,
-            used_retries=0,
+            max_retries=self._maximum_retries,
+            used_retries=self._used_retries,
         )
 
 
