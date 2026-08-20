@@ -90,3 +90,19 @@ artifact directory. `selected_source_bytes` is the immutable manifest sum and
 performing a network request. Per-case failures retain a classified error and
 do not prevent the remaining development cases or the other mode from being
 reported.
+
+## Bounded observation-tool replies
+
+Day 19's `ToolResult` is an in-process agent reply rather than a new evidence
+packet. It returns the action, allowlisted observation ID, cumulative evidence
+content hashes, a `Budget` resource record, terminal state, idempotence flag,
+and an optional structured error. Every accepted observation is replayed as a
+new cumulative Day 17 packet, so the returned latest content hash identifies
+the updated C07/C14 anomaly and persistence measurements.
+
+Tool manifests include exactly the case's allowlisted observation IDs and
+pair each action with predeclared C07/C14 cached source objects. The action API
+cannot receive paths or URLs. Before reading, source paths must stay under the
+configured source-cache root and outside `evaluation-data`; size and SHA-256
+are verified. Tool-manifest file loading uses the same label boundary, so an
+agent cannot use a tool request to read evaluation labels or arbitrary files.

@@ -214,6 +214,23 @@ errors, and content-addressed evidence IDs in the same schema for both modes.
 The template supplies the existing Day 17 tile/quality/anomaly/persistence
 settings; its own source paths are not replayed for the benchmark cases.
 
+## Bounded observation tools
+
+`firesentinel.agent.tools.BoundedObservationTools` exposes only
+`next_timestamp`, `alternate_band`, `pre_event_baseline`, `finalize`,
+`abstain`, and `request_human_review`. An action accepts an allowlisted
+observation ID only: source paths, bands, and thresholds are fixed in a local
+tool manifest. Cache files are confined to the declared source-cache root and
+verified against their declared byte size and SHA-256 before processing.
+
+Each accepted observation replays the cumulative C07/C14 evidence job, so the
+returned evidence ID identifies updated masks, overlays, and persistence—not a
+black-box score. Tool responses include a `Budget`, cumulative evidence IDs,
+and a structured error on rejection. Repeating a successful request is
+idempotent; no request may exceed three observations, byte or elapsed-time
+limits, and terminal actions close the session. Tool-manifest loading rejects
+the entire evaluation-label subtree.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for
