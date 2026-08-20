@@ -157,3 +157,21 @@ The build validates each C07 initial/later/baseline and C14 alternate source
 reference, excludes controls near FIRMS detections, records matching variables
 and the random seed, and writes independently hash-audited files under
 `evaluation-data/benchmark/`.
+
+## Frozen benchmark splits
+
+Once the benchmark exists, inspect the deterministic Day 12 sample and save
+your notes before freezing the three evaluation views:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks benchmark-freeze `
+  --reviewer "reviewer-name" `
+  --review-notes path\to\day12-review-notes.txt
+```
+
+The freezer assigns connected groups by FIRMS event, 2-degree geographic cell,
+and UTC week, never individual frames. It fails when those groupings cannot
+form independent development, test, and stress splits. The frozen audit stores
+hashes, the leakage result, manual-inspection notes, and distribution reviews.
+Test and stress manifests are blind; their labels remain scoring-only and the
+`tune` task accepts only the frozen development manifest.

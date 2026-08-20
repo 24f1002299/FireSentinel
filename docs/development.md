@@ -79,3 +79,21 @@ $env:PYTHONPATH = "src"
 .\.venv\Scripts\python -m firesentinel.agent.replay --input artifacts\events.jsonl
 .\.venv\Scripts\python -m firesentinel.evaluation.run --input artifacts\evaluation.jsonl
 ```
+
+## Frozen evaluation boundary
+
+`benchmark-freeze` is the required gate between a candidate benchmark and
+model selection. It verifies the existing benchmark hashes, groups cases by
+the positive FIRMS event, recomputed two-degree WGS84 cell, and UTC ISO week,
+then assigns whole connected components to development, test, or stress.
+The output audit records a passing leakage check and the distribution review:
+season, local hour, view angle, missingness (`1 - usable_fraction`), FIRMS
+confidence, and required C07/C14 bundle availability.
+
+The command requires a reviewer and non-empty manual-inspection notes. This
+makes the saved audit a review record rather than an assertion that automation
+performed a visual inspection. Frozen test and stress manifests expose only
+opaque IDs and model inputs; their labels and the split assignment map are
+scoring-only. Tuning code must call `tuning_manifest_path` (or the `tune`
+task) and will be rejected unless it uses `development.manifest.json` under
+`evaluation-data/frozen/`.

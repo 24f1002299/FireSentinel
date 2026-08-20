@@ -112,6 +112,31 @@ def benchmark_build(arguments: argparse.Namespace) -> int:
     return _run(command)
 
 
+def benchmark_freeze(arguments: argparse.Namespace) -> int:
+    command = [sys.executable, "-m", "firesentinel.evaluation.freeze"]
+    for option in (
+        "benchmark",
+        "benchmark_audit",
+        "output_dir",
+        "reviewer",
+        "review_notes",
+        "manual_sample_size",
+    ):
+        value = getattr(arguments, option)
+        if value is not None:
+            command.extend([f"--{option.replace('_', '-')}", str(value)])
+    if arguments.overwrite:
+        command.append("--overwrite")
+    return _run(command)
+
+
+def tune(arguments: argparse.Namespace) -> int:
+    command = [sys.executable, "-m", "firesentinel.evaluation.tuning"]
+    if arguments.manifest is not None:
+        command.extend(["--manifest", str(arguments.manifest)])
+    return _run(command)
+
+
 def slice_replay(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.vision.real_event", "--verify"])
 
@@ -161,6 +186,14 @@ TASKS: dict[str, tuple[str, Task]] = {
     "benchmark-build": (
         "Build matched positive/control evaluation cases from pinned inputs.",
         benchmark_build,
+    ),
+    "benchmark-freeze": (
+        "Audit grouped splits and freeze development, test, and stress manifests.",
+        benchmark_freeze,
+    ),
+    "tune": (
+        "Validate the frozen development-only input boundary for tuning.",
+        tune,
     ),
     "slice": (
         "Recreate the pinned real-event OpenCV evidence from verified cached sources.",
@@ -240,6 +273,49 @@ def main(argv: list[str] | None = None) -> int:
                 "--overwrite",
                 action="store_true",
                 help="replace changed benchmark files",
+            )
+        if name == "benchmark-freeze":
+            subparser.add_argument(
+                "--benchmark",
+                type=Path,
+                help="benchmark cases under evaluation-data/",
+            )
+            subparser.add_argument(
+                "--benchmark-audit",
+                type=Path,
+                help="benchmark audit under evaluation-data/",
+            )
+            subparser.add_argument(
+                "--output-dir",
+                type=Path,
+                help="frozen output directory under evaluation-data/",
+            )
+            subparser.add_argument(
+                "--reviewer",
+                required=True,
+                help="person who manually inspected the sample",
+            )
+            subparser.add_argument(
+                "--review-notes",
+                type=Path,
+                required=True,
+                help="UTF-8 manual-inspection notes",
+            )
+            subparser.add_argument(
+                "--manual-sample-size",
+                type=int,
+                help="deterministic manual-inspection sample size",
+            )
+            subparser.add_argument(
+                "--overwrite",
+                action="store_true",
+                help="replace changed frozen artifacts",
+            )
+        if name == "tune":
+            subparser.add_argument(
+                "--manifest",
+                type=Path,
+                help="frozen development manifest; test and stress are rejected",
             )
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)

@@ -175,6 +175,7 @@ class FirmsEvent:
     end_time: datetime
     latitude: float
     longitude: float
+    confidence_values: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,6 +192,7 @@ class BenchmarkCase:
     event_id: str | None = None
     matched_positive_case_id: str | None = None
     matching_deltas: dict[str, int | float] | None = None
+    firms_confidence_values: tuple[str, ...] | None = None
 
     def _payload_without_hash(self) -> dict[str, object]:
         payload: dict[str, object] = {
@@ -212,6 +214,8 @@ class BenchmarkCase:
             payload["matched_positive_case_id"] = self.matched_positive_case_id
         if self.matching_deltas is not None:
             payload["matching_deltas"] = self.matching_deltas
+        if self.firms_confidence_values is not None:
+            payload["firms_confidence_values"] = list(self.firms_confidence_values)
         return payload
 
     def to_dict(self) -> dict[str, object]:
@@ -465,9 +469,17 @@ def _load_firms_events(
         raw_detections = raw_event.get("detections")
         if not isinstance(raw_detections, list) or not raw_detections:
             raise ValueError("FIRMS event must contain detections")
+        confidence_values: list[str] = []
         for raw_detection in raw_detections:
             if not isinstance(raw_detection, dict):
                 raise ValueError("FIRMS detection must be an object")
+            confidence = raw_detection.get("confidence")
+            if confidence is not None:
+                if not isinstance(confidence, str) or not confidence.strip():
+                    raise ValueError(
+                        "FIRMS detection confidence must be a non-empty string"
+                    )
+                confidence_values.append(confidence.strip().lower())
             detections.append(
                 FirmsDetection(
                     acquired_at=_parse_timestamp(
@@ -484,7 +496,16 @@ def _load_firms_events(
                     ),
                 )
             )
-        events.append(FirmsEvent(event_id, start_time, end_time, latitude, longitude))
+        events.append(
+            FirmsEvent(
+                event_id,
+                start_time,
+                end_time,
+                latitude,
+                longitude,
+                tuple(sorted(set(confidence_values))),
+            )
+        )
     return tuple(
         sorted(events, key=lambda event: (event.start_time, event.event_id))
     ), tuple(sorted(detections, key=lambda detection: detection.acquired_at))
@@ -767,6 +788,7 @@ def _positive_case(event: FirmsEvent, window: ObservationWindow) -> BenchmarkCas
             )
         ),
         event_id=event.event_id,
+        firms_confidence_values=event.confidence_values or None,
     )
 
 
