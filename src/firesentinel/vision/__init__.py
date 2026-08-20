@@ -20,6 +20,12 @@ from firesentinel.vision.fixtures import (
     offline_fixture_manifest,
     verify_fixture_bundle,
 )
+from firesentinel.vision.tiles import (
+    PreparedTile,
+    TilePreparationParameters,
+    prepare_calibrated_tile,
+    prepare_tile,
+)
 
 __all__ = [
     "FIXTURE_SEED",
@@ -40,4 +46,8 @@ __all__ = [
     "load_offline_fixture_bundle",
     "offline_fixture_manifest",
     "verify_fixture_bundle",
+    "PreparedTile",
+    "TilePreparationParameters",
+    "prepare_calibrated_tile",
+    "prepare_tile",
 ]

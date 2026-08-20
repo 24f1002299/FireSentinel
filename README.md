@@ -128,6 +128,15 @@ the source edge. The resulting deterministic `.npz` contains calibrated data,
 invalid mask, DQF, per-pixel latitude/longitude, scan coordinates, timing,
 projection/calibration metadata, source hash, and a canonical content checksum.
 
+## Mask-aware OpenCV tiles
+
+`firesentinel.vision.tiles` converts a calibrated crop into physically clipped,
+mask-aware-resized analysis values plus a separate robust `uint8` display image.
+The original calibration is retained unchanged, invalid output pixels remain
+`NaN`/masked and black in displays, and optional CLAHE is emitted only as a
+secondary review image. Tile metadata records parameters, masks, ranges,
+timings, and the OpenCV build hash. See [tile preparation](docs/tile-preparation.md).
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for

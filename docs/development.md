@@ -97,3 +97,14 @@ opaque IDs and model inputs; their labels and the split assignment map are
 scoring-only. Tuning code must call `tuning_manifest_path` (or the `tune`
 task) and will be rejected unless it uses `development.manifest.json` under
 `evaluation-data/frozen/`.
+
+## Tile preparation boundary
+
+Use `prepare_tile(calibrated_crop, TilePreparationParameters(...))` before an
+OpenCV detector consumes a calibrated GOES crop. The returned `PreparedTile`
+keeps `calibrated` values unchanged; physical clipping and robust scaling are
+derived products. Detectors must consume `resized_calibrated` and `valid_mask`,
+never `display` or `clahe_display`. `metadata()` is the hand-off audit record
+for source timing/checksum, masks, ranges, parameters, timings, and the OpenCV
+version/build hash. Details and coverage semantics are in
+[tile preparation](tile-preparation.md).
