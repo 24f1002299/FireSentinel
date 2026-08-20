@@ -106,3 +106,19 @@ cannot receive paths or URLs. Before reading, source paths must stay under the
 configured source-cache root and outside `evaluation-data`; size and SHA-256
 are verified. Tool-manifest file loading uses the same label boundary, so an
 agent cannot use a tool request to read evaluation labels or arbitrary files.
+
+## Transparent policy decisions
+
+Day 20's `PolicyDecision` is a pure, reviewer-facing rule evaluation. Its
+inputs are an `EvidenceSnapshot`, a `Budget`, allowlisted observation actions,
+and optionally the previous evidence and last `ToolResult`. It stores the
+selected action, rule, satisfied conditions, human-readable selection reason,
+every considered and rejected action, and field-by-field evidence changes.
+
+The ordered table does not contain model output or a future-value score. A
+prior tool failure or exhausted budget selects abstention; poor quality and
+band conflict select a permitted comparison before persistent evidence can
+escalate to human review. Absent persistence selects finalization, and weak
+contextual evidence selects a deterministic follow-up. The selected action is
+only executed by `apply_policy_decision`, which delegates to the bounded tool
+surface described above.

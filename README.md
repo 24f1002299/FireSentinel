@@ -231,6 +231,21 @@ idempotent; no request may exceed three observations, byte or elapsed-time
 limits, and terminal actions close the session. Tool-manifest loading rejects
 the entire evaluation-label subtree.
 
+## Transparent agent policy
+
+`firesentinel.agent.policy.TransparentAgentPolicy` is a stateless, ordered rule
+table. It accepts explicit evidence facts, the current `Budget`, currently
+allowlisted actions, and an optional prior tool reply; it never reads files,
+uses an LLM, keeps hidden state, or estimates speculative future value.
+
+The policy prioritizes tool failures and exhausted budgets, then poor quality
+and band conflict, then persistent evidence (human review), absent persistence
+(finalize), and weak contextual contrast (an allowlisted comparison). Each
+`PolicyDecision` records satisfied conditions, the selected rule and reason,
+all considered/rejected actions, and measured evidence changes from the prior
+packet. `apply_policy_decision` is the separate adapter that invokes the
+already bounded Day 19 tool.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for
