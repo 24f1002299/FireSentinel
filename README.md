@@ -143,3 +143,17 @@ It writes labels and a separate audit record to `evaluation-data/firms/`.
 That directory is intentionally absent from runtime settings, and agent replay
 inputs reject it. See [evaluation-data/README.md](evaluation-data/README.md)
 for the artifact schema and overwrite behavior.
+
+## Matched evaluation benchmark
+
+With Day 10 FIRMS labels and a pinned observation-window inventory in
+`evaluation-data/`, build the 60-positive/60-control minimum benchmark with:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks benchmark-build
+```
+
+The build validates each C07 initial/later/baseline and C14 alternate source
+reference, excludes controls near FIRMS detections, records matching variables
+and the random seed, and writes independently hash-audited files under
+`evaluation-data/benchmark/`.

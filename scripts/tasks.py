@@ -95,6 +95,23 @@ def firms_ingest(arguments: argparse.Namespace) -> int:
     return _run(command)
 
 
+def benchmark_build(arguments: argparse.Namespace) -> int:
+    command = [sys.executable, "-m", "firesentinel.evaluation.benchmark"]
+    for option in (
+        "firms_labels",
+        "observation_inventory",
+        "output_dir",
+        "cases_per_class",
+        "random_seed",
+    ):
+        value = getattr(arguments, option)
+        if value is not None:
+            command.extend([f"--{option.replace('_', '-')}", str(value)])
+    if arguments.overwrite:
+        command.append("--overwrite")
+    return _run(command)
+
+
 def slice_replay(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.vision.real_event", "--verify"])
 
@@ -140,6 +157,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     "firms-ingest": (
         "Ingest local FIRMS CSV files into evaluation-only references.",
         firms_ingest,
+    ),
+    "benchmark-build": (
+        "Build matched positive/control evaluation cases from pinned inputs.",
+        benchmark_build,
     ),
     "slice": (
         "Recreate the pinned real-event OpenCV evidence from verified cached sources.",
@@ -188,6 +209,37 @@ def main(argv: list[str] | None = None) -> int:
                 "--overwrite",
                 action="store_true",
                 help="replace changed generated references",
+            )
+        if name == "benchmark-build":
+            subparser.add_argument(
+                "--firms-labels",
+                type=Path,
+                help="FIRMS labels under evaluation-data/",
+            )
+            subparser.add_argument(
+                "--observation-inventory",
+                type=Path,
+                help="pinned observation-window inventory under evaluation-data/",
+            )
+            subparser.add_argument(
+                "--output-dir",
+                type=Path,
+                help="directory under evaluation-data/ for the benchmark",
+            )
+            subparser.add_argument(
+                "--cases-per-class",
+                type=int,
+                help="positive and control count; minimum 60",
+            )
+            subparser.add_argument(
+                "--random-seed",
+                type=int,
+                help="deterministic control sampling seed",
+            )
+            subparser.add_argument(
+                "--overwrite",
+                action="store_true",
+                help="replace changed benchmark files",
             )
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)
