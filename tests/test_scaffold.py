@@ -19,6 +19,7 @@ def test_settings_have_repository_local_defaults(tmp_path: Path) -> None:
     assert settings.artifacts_dir == tmp_path / "artifacts"
     assert settings.manifests_dir == tmp_path / "manifests"
     assert settings.catalog_cache_dir == tmp_path / "data" / "catalog"
+    assert settings.source_cache_dir == tmp_path / "data" / "source-cache"
     assert settings.log_level == "INFO"
 
 

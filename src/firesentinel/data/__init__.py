@@ -11,6 +11,16 @@ from firesentinel.data.goes18 import (
     MissingFrame,
     MissingFrameReason,
 )
+from firesentinel.data.source_cache import (
+    CacheInspection,
+    DownloadReceipt,
+    SourceCacheCorruptionError,
+    SourceCacheError,
+    SourceChecksumError,
+    SourceRequest,
+    SourceSizeError,
+    VerifiedSourceCache,
+)
 
 __all__ = [
     "AnonymousS3Catalog",
@@ -22,4 +32,12 @@ __all__ = [
     "LocalCatalogCache",
     "MissingFrame",
     "MissingFrameReason",
+    "CacheInspection",
+    "DownloadReceipt",
+    "SourceCacheCorruptionError",
+    "SourceCacheError",
+    "SourceChecksumError",
+    "SourceRequest",
+    "SourceSizeError",
+    "VerifiedSourceCache",
 ]

@@ -27,11 +27,15 @@ Run every project action through the portable task runner:
 .\.venv\Scripts\python -m scripts.tasks typecheck
 ```
 
-Dataset downloads are controlled only by the checked-in JSON manifest. The
-initial empty manifest makes this safe to run before a data source is chosen:
+Selected source downloads are controlled only by the checked-in JSON manifest.
+Each verified source is stored once under `data/source-cache/` by its SHA-256;
+later requests validate and reuse the cached bytes. The initial empty manifest
+makes this safe to run before a source is chosen:
 
 ```powershell
 .\.venv\Scripts\python -m scripts.tasks download
+.\.venv\Scripts\python -m scripts.tasks cache-inspect
+.\.venv\Scripts\python -m scripts.tasks cache-clean-case --case-id pine-creek
 .\.venv\Scripts\python -m scripts.tasks replay
 .\.venv\Scripts\python -m scripts.tasks evaluate
 ```
@@ -89,3 +93,9 @@ GOES-18 discovery is available as the typed `firesentinel.data.goes18` API. It
 uses anonymous public S3 catalog requests for only `ABI-L2-CMIPF` Channels 7
 and 14, with immutable local hourly catalog snapshots stored under
 `data/catalog/`. No AWS credentials are read or required.
+
+The download command accepts pinned `cases`/`sources` manifest entries; see
+[the manifest format](manifests/README.md). It records JSON receipts containing
+declared source size, transfer bytes, verified checksum, elapsed time, retry
+count, and whether the result was a cache hit. Case cleanup removes exactly one
+case's references and retains blobs that another case still uses.

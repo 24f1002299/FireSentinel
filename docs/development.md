@@ -22,6 +22,7 @@ variables only to override local paths or log verbosity:
 | `FIRE_SENTINEL_ARTIFACTS_DIR` | `artifacts/` | Generated outputs. |
 | `FIRE_SENTINEL_MANIFESTS_DIR` | `manifests/` | Dataset manifest location. |
 | `FIRE_SENTINEL_CATALOG_CACHE_DIR` | `data/catalog/` | Immutable cached NOAA GOES-18 catalog listings. |
+| `FIRE_SENTINEL_SOURCE_CACHE_DIR` | `data/source-cache/` | Verified content-addressed source-object cache. |
 
 Application logs are JSON emitted to standard error.
 
@@ -44,6 +45,24 @@ exceptions so an unavailable catalog cannot be mistaken for absent imagery.
 `manifests/datasets.json` starts empty, therefore the `download` command is a
 successful no-op in a clean checkout. Add only explicit `http`/`https` entries
 with a `name`, `source_url`, and ideally a `sha256`; see the manifest README.
+
+## Verified source cache
+
+For pinned case sources, `download` streams into a private temporary file,
+checks the declared byte size and SHA-256, then atomically publishes the blob
+under its digest. Failed, interrupted, and checksum-invalid transfers have no
+object or source index entry. A later request rechecks the local blob and is
+reported as a cache hit with zero transfer bytes.
+
+Use these safe cache commands:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks cache-inspect
+.\.venv\Scripts\python -m scripts.tasks cache-clean-case --case-id pine-creek
+```
+
+The latter removes only `pine-creek`'s source references. Content still linked
+by another case remains in the cache.
 
 The `replay` and `evaluate` tasks deliberately validate JSONL input before the
 later model and policy milestones add their behavior:

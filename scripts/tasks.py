@@ -53,6 +53,23 @@ def download(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.data.download"])
 
 
+def cache_inspect(_: argparse.Namespace) -> int:
+    return _run([sys.executable, "-m", "firesentinel.data.download", "inspect"])
+
+
+def cache_clean_case(arguments: argparse.Namespace) -> int:
+    return _run(
+        [
+            sys.executable,
+            "-m",
+            "firesentinel.data.download",
+            "clean-case",
+            "--case-id",
+            arguments.case_id,
+        ]
+    )
+
+
 def replay(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.agent.replay"])
 
@@ -92,6 +109,11 @@ TASKS: dict[str, tuple[str, Task]] = {
     "typecheck": ("Run strict mypy checks.", typecheck),
     "test": ("Run the test suite.", test),
     "download": ("Download datasets declared in manifests/datasets.json.", download),
+    "cache-inspect": ("Inspect verified local source-cache contents.", cache_inspect),
+    "cache-clean-case": (
+        "Remove verified-cache references for one case only.",
+        cache_clean_case,
+    ),
     "replay": ("Validate and replay a JSONL event stream.", replay),
     "evaluate": ("Validate an evaluation JSONL file.", evaluate),
     "ui": ("Launch the Streamlit UI shell.", ui),
@@ -108,6 +130,8 @@ def main(argv: list[str] | None = None) -> int:
             subparser.add_argument(
                 "--artifacts", action="store_true", help="also remove local artifacts"
             )
+        if name == "cache-clean-case":
+            subparser.add_argument("--case-id", required=True, help="case to remove")
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)
     task_name = arguments.task
