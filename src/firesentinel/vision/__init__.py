@@ -1,5 +1,12 @@
 """OpenCV preprocessing, fixture, and fire-candidate detection components."""
 
+from firesentinel.vision.anomalies import (
+    DEVELOPMENT_CONTEXTUAL_ANOMALY_PARAMETERS,
+    ContextualAnomalyComponent,
+    ContextualAnomalyParameters,
+    ContextualAnomalyResult,
+    extract_contextual_anomalies,
+)
 from firesentinel.vision.fixtures import (
     FIXTURE_SEED,
     FIXTURE_SHAPE,
@@ -37,6 +44,11 @@ from firesentinel.vision.tiles import (
 )
 
 __all__ = [
+    "DEVELOPMENT_CONTEXTUAL_ANOMALY_PARAMETERS",
+    "ContextualAnomalyComponent",
+    "ContextualAnomalyParameters",
+    "ContextualAnomalyResult",
+    "extract_contextual_anomalies",
     "FIXTURE_SEED",
     "FIXTURE_SHAPE",
     "FIXTURE_VERSION",

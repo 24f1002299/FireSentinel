@@ -148,6 +148,17 @@ Poor coverage, blank, clipped/saturated, or low-contrast observations receive
 explicit reason codes, a zero fire-evidence confidence cap, and have apparent
 candidate masks cleared by `apply_quality_gate`.
 
+## Contextual thermal anomalies
+
+`firesentinel.vision.anomalies.extract_contextual_anomalies` consumes aligned,
+calibrated Channel 7 and Channel 14 arrays with their invalid masks. It derives
+a mask-aware local Channel 7 contrast map and a calibrated C07-minus-C14 map,
+requires both thresholds, then uses OpenCV 5 morphology, connected components,
+contours, area filtering, and optional edge-distance filtering. Each retained
+component records its area, centroid, source-array contrast/difference
+measurements, edge proximity, and an annotated overlay; poor-quality channels
+clear all candidate regions before they can become fire evidence.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for
