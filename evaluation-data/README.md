@@ -90,3 +90,19 @@ development-only boundary; the current guard can be checked with:
 Passing a test/stress manifest or either label file to `tune --manifest` fails
 before it reads labels. Re-run a frozen set without `--overwrite`; changed
 artifacts require that explicit flag and a new review decision.
+
+## Sealed frozen evaluation
+
+Run the documented three-mode frozen comparison with:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks frozen-evaluation `
+  --evidence-template path\to\evidence-job.json
+```
+
+It reads the scoring-only test/stress labels only inside the evaluation module
+after verifying every frozen artifact. The sealed output is
+`frozen-results/frozen-evaluation.json`; it has input/code/configuration hashes,
+per-case results, and test/stress/combined aggregate tables. Repeating the
+command verifies and reuses the matching report. `--rerun --overwrite` is the
+explicit replacement path.

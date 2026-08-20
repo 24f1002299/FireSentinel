@@ -367,3 +367,30 @@ form independent development, test, and stress splits. The frozen audit stores
 hashes, the leakage result, manual-inspection notes, and distribution reviews.
 Test and stress manifests are blind; their labels remain scoring-only and the
 `tune` task accepts only the frozen development manifest.
+
+## Frozen test and stress evaluation
+
+After the manifests, verified cache, and one Day 17 evidence-job template are
+pinned, this single command runs `one_shot`, `fixed_bundle`, and bounded
+`adaptive` replay, then seals per-case rows and aggregate tables before error
+analysis:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks frozen-evaluation `
+  --evidence-template path\to\evidence-job.json
+```
+
+It verifies the entire frozen benchmark set before reading the scoring-only
+test/stress labels. The report at
+`evaluation-data/frozen-results/frozen-evaluation.json` pins the input-manifest
+and label hashes, path-free evidence configuration, and hashes of the evaluator,
+agent-policy, outcome, and evidence implementation. It reports macro F1,
+macro precision/recall, deterministic 95% bootstrap intervals, one-shot
+ambiguity resolution, abstention coverage, observations, bytes, latency, and
+errors for each mode on test, stress, and their combined table.
+
+The command is intentionally idempotent: later invocations verify and reuse
+the sealed matching report. Use `--rerun --overwrite` only to deliberately
+replace it after an approved evaluation rerun. Review escalation is scored as
+a positive thermal-evidence decision; human-review, insufficient-evidence, and
+failed outcomes are abstentions. None is a confirmed-wildfire assertion.

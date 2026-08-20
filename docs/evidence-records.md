@@ -91,6 +91,29 @@ performing a network request. Per-case failures retain a classified error and
 do not prevent the remaining development cases or the other mode from being
 reported.
 
+## Sealed frozen-evaluation report
+
+`firesentinel.evaluation.frozen_run` emits a
+`firesentinel_frozen_evaluation` record only after validating the complete
+frozen benchmark set. It contains sorted `per_case_results` for `one_shot`,
+`fixed_bundle`, and `adaptive` modes, plus `aggregate_tables` for test, stress,
+and combined rows. `analysis_status` is fixed to
+`frozen_before_error_analysis`.
+
+The evaluator stores input hashes for both blind manifests, scoring-only label
+files, the path-free evidence template, and the active evaluator/policy/outcome
+and vision implementation. Aggregates include macro F1, precision, recall,
+seeded percentile bootstrap intervals, abstention coverage, initial-one-shot
+ambiguity resolution, observation/byte totals, latency, and errors. An
+existing changed report is refused unless an explicit rerun and overwrite are
+requested. A matching report is verified and reused by the documented task.
+
+For scoring only, `review_escalation` maps to positive thermal evidence and
+`no_persistent_evidence` maps to control. `human_review`,
+`insufficient_evidence`, and `failed` remain abstentions; abstentions count as
+false negatives for their true class in macro metrics. This evaluation mapping
+does not claim confirmed wildfire occurrence.
+
 ## Bounded observation-tool replies
 
 Day 19's `ToolResult` is an in-process agent reply rather than a new evidence

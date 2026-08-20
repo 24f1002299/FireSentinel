@@ -179,6 +179,37 @@ def baselines(arguments: argparse.Namespace) -> int:
     return _run(command)
 
 
+def frozen_evaluation(arguments: argparse.Namespace) -> int:
+    """Run or reuse the sealed test/stress three-mode evaluation report."""
+
+    command = [
+        sys.executable,
+        "-m",
+        "firesentinel.evaluation.frozen_run",
+        "--evidence-template",
+        str(arguments.evidence_template),
+    ]
+    for option in (
+        "frozen_dir",
+        "source_cache",
+        "artifacts_dir",
+        "output",
+        "timeout_seconds",
+        "maximum_observations",
+        "maximum_retries",
+        "bootstrap_samples",
+        "bootstrap_seed",
+    ):
+        value = getattr(arguments, option)
+        if value is not None:
+            command.extend([f"--{option.replace('_', '-')}", str(value)])
+    if arguments.rerun:
+        command.append("--rerun")
+    if arguments.overwrite:
+        command.append("--overwrite")
+    return _run(command)
+
+
 def agent_loop(arguments: argparse.Namespace) -> int:
     command = [
         sys.executable,
@@ -268,6 +299,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     "baselines": (
         "Run comparable one-shot and fixed-bundle development baselines.",
         baselines,
+    ),
+    "frozen-evaluation": (
+        "Run or reuse the sealed one-shot, fixed-bundle, and adaptive evaluation.",
+        frozen_evaluation,
     ),
     "agent-loop": (
         "Run or resume one checkpointed bounded local investigation.",
@@ -459,6 +494,48 @@ def main(argv: list[str] | None = None) -> int:
             subparser.add_argument("--maximum-elapsed-seconds", type=float)
             subparser.add_argument("--maximum-observations", type=int)
             subparser.add_argument("--maximum-retries", type=int)
+        if name == "frozen-evaluation":
+            subparser.add_argument(
+                "--evidence-template",
+                type=Path,
+                required=True,
+                help="Day 17 job whose path-free evidence configuration is pinned",
+            )
+            subparser.add_argument(
+                "--frozen-dir",
+                type=Path,
+                help="verified frozen test/stress manifests and scoring labels",
+            )
+            subparser.add_argument(
+                "--source-cache",
+                type=Path,
+                help="verified local source cache; no network fallback",
+            )
+            subparser.add_argument(
+                "--artifacts-dir",
+                type=Path,
+                help="non-label root for generated evidence and adaptive traces",
+            )
+            subparser.add_argument(
+                "--output",
+                type=Path,
+                help="sealed evaluation report under evaluation-data/",
+            )
+            subparser.add_argument("--timeout-seconds", type=float)
+            subparser.add_argument("--maximum-observations", type=int)
+            subparser.add_argument("--maximum-retries", type=int)
+            subparser.add_argument("--bootstrap-samples", type=int)
+            subparser.add_argument("--bootstrap-seed", type=int)
+            subparser.add_argument(
+                "--rerun",
+                action="store_true",
+                help="run instead of reusing a matching sealed report",
+            )
+            subparser.add_argument(
+                "--overwrite",
+                action="store_true",
+                help="replace a changed report; requires --rerun",
+            )
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)
     task_name = arguments.task
