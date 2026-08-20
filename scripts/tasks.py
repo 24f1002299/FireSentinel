@@ -78,6 +78,23 @@ def evaluate(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.evaluation.run"])
 
 
+def firms_ingest(arguments: argparse.Namespace) -> int:
+    command = [sys.executable, "-m", "firesentinel.evaluation.firms"]
+    for source in arguments.source:
+        command.extend(["--source", str(source)])
+    if arguments.output_dir is not None:
+        command.extend(["--output-dir", str(arguments.output_dir)])
+    if arguments.maximum_distance_km is not None:
+        command.extend(["--maximum-distance-km", str(arguments.maximum_distance_km)])
+    if arguments.maximum_time_gap_minutes is not None:
+        command.extend(
+            ["--maximum-time-gap-minutes", str(arguments.maximum_time_gap_minutes)]
+        )
+    if arguments.overwrite:
+        command.append("--overwrite")
+    return _run(command)
+
+
 def slice_replay(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.vision.real_event", "--verify"])
 
@@ -120,6 +137,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     ),
     "replay": ("Validate and replay a JSONL event stream.", replay),
     "evaluate": ("Validate an evaluation JSONL file.", evaluate),
+    "firms-ingest": (
+        "Ingest local FIRMS CSV files into evaluation-only references.",
+        firms_ingest,
+    ),
     "slice": (
         "Recreate the pinned real-event OpenCV evidence from verified cached sources.",
         slice_replay,
@@ -140,6 +161,34 @@ def main(argv: list[str] | None = None) -> int:
             )
         if name == "cache-clean-case":
             subparser.add_argument("--case-id", required=True, help="case to remove")
+        if name == "firms-ingest":
+            subparser.add_argument(
+                "--source",
+                type=Path,
+                action="append",
+                required=True,
+                help="local FIRMS CSV export; repeat for multiple sources",
+            )
+            subparser.add_argument(
+                "--output-dir",
+                type=Path,
+                help="directory under evaluation-data/ for generated references",
+            )
+            subparser.add_argument(
+                "--maximum-distance-km",
+                type=float,
+                help="event clustering distance in km",
+            )
+            subparser.add_argument(
+                "--maximum-time-gap-minutes",
+                type=int,
+                help="event clustering time gap in minutes",
+            )
+            subparser.add_argument(
+                "--overwrite",
+                action="store_true",
+                help="replace changed generated references",
+            )
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)
     task_name = arguments.task

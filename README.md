@@ -73,6 +73,7 @@ scripts/         portable task runner and runtime verification
 tests/           smoke and scaffold tests
 artifacts/       ignored generated outputs
 docs/            project and development documentation
+evaluation-data/ frozen evaluation-only scoring references and label audits
 ```
 
 See [the development workflow](docs/development.md) for configuration details
@@ -126,3 +127,19 @@ scale/offset itself, masks fill/range/DQF/off-Earth pixels, and clips padding at
 the source edge. The resulting deterministic `.npz` contains calibrated data,
 invalid mask, DQF, per-pixel latitude/longitude, scan coordinates, timing,
 projection/calibration metadata, source hash, and a canonical content checksum.
+
+## Evaluation-only FIRMS references
+
+Local FIRMS CSV exports can be normalized into isolated event references for
+offline scoring. The ingester retains only acquisition time, WGS84 coordinates,
+confidence, brightness, and instrument; it removes exact normalized duplicates
+and clusters detections by an audited time and geodesic-distance window.
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks firms-ingest --source path\to\firms.csv
+```
+
+It writes labels and a separate audit record to `evaluation-data/firms/`.
+That directory is intentionally absent from runtime settings, and agent replay
+inputs reject it. See [evaluation-data/README.md](evaluation-data/README.md)
+for the artifact schema and overwrite behavior.
