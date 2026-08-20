@@ -17,6 +17,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from firesentinel.core.records import ReasonCode
+from firesentinel.vision.quality import measure_observation_quality
 
 FIXTURE_VERSION = 1
 FIXTURE_SEED = 20_260_819
@@ -56,6 +57,9 @@ class FrameQualityExpectation:
     coverage_fraction: float
     saturated_fraction: float
     contrast_span: float
+    missing_fraction: float = 0.0
+    texture_standard_deviation: float = 0.0
+    mean_absolute_neighbor_difference: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -400,13 +404,16 @@ def _component(column: int, row: int) -> ExpectedComponent:
 
 
 def _quality(frame: FloatArray, valid_mask: MaskArray) -> FrameQualityExpectation:
-    valid_pixels = frame[valid_mask]
-    if valid_pixels.size == 0:
-        return FrameQualityExpectation(0.0, 0.0, 0.0)
+    quality = measure_observation_quality(frame, ~valid_mask)
     return FrameQualityExpectation(
-        coverage_fraction=float(valid_mask.mean()),
-        saturated_fraction=float((valid_pixels >= SATURATION_VALUE).mean()),
-        contrast_span=float(np.ptp(valid_pixels)),
+        coverage_fraction=quality.usable_coverage_fraction,
+        saturated_fraction=quality.saturated_pixel_fraction,
+        contrast_span=quality.contrast_span_kelvin,
+        missing_fraction=quality.missing_pixel_fraction,
+        texture_standard_deviation=quality.texture_standard_deviation_kelvin,
+        mean_absolute_neighbor_difference=(
+            quality.mean_absolute_neighbor_difference_kelvin
+        ),
     )
 
 

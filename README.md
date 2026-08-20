@@ -137,6 +137,17 @@ The original calibration is retained unchanged, invalid output pixels remain
 secondary review image. Tile metadata records parameters, masks, ranges,
 timings, and the OpenCV build hash. See [tile preparation](docs/tile-preparation.md).
 
+## Observation quality gate
+
+`firesentinel.vision.quality` measures calibrated, mask-aware missingness,
+usable coverage, clipping/saturation, contrast span, standard-deviation
+texture, and mean adjacent-pixel difference before any anomaly interpretation.
+Its checked-in thresholds are restricted to development cases and the offline
+synthetic fixtures; runtime quality assessment reads no evaluation labels.
+Poor coverage, blank, clipped/saturated, or low-contrast observations receive
+explicit reason codes, a zero fire-evidence confidence cap, and have apparent
+candidate masks cleared by `apply_quality_gate`.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for

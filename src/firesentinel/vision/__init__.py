@@ -20,6 +20,15 @@ from firesentinel.vision.fixtures import (
     offline_fixture_manifest,
     verify_fixture_bundle,
 )
+from firesentinel.vision.quality import (
+    DEVELOPMENT_QUALITY_THRESHOLDS,
+    THRESHOLD_SELECTION_SCOPE,
+    ObservationQuality,
+    ObservationQualityThresholds,
+    apply_quality_gate,
+    measure_observation_quality,
+    measure_prepared_tile_quality,
+)
 from firesentinel.vision.tiles import (
     PreparedTile,
     TilePreparationParameters,
@@ -50,4 +59,11 @@ __all__ = [
     "TilePreparationParameters",
     "prepare_calibrated_tile",
     "prepare_tile",
+    "DEVELOPMENT_QUALITY_THRESHOLDS",
+    "THRESHOLD_SELECTION_SCOPE",
+    "ObservationQuality",
+    "ObservationQualityThresholds",
+    "apply_quality_gate",
+    "measure_observation_quality",
+    "measure_prepared_tile_quality",
 ]
