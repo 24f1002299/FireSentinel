@@ -267,6 +267,25 @@ class VerifiedSourceCache:
                     temporary_path.unlink(missing_ok=True)
         raise AssertionError("download retry loop should always return or raise")
 
+    def require_cached(self, request: SourceRequest) -> Path:
+        """Return a verified cached path without performing network I/O.
+
+        Replay stages must be able to prove that they only consumed the exact
+        bytes selected by a pinned manifest.  Unlike :meth:`fetch`, this
+        method never creates a reference, writes cache metadata, or falls back
+        to a download when the requested source has not already been cached.
+        """
+        if not isinstance(request, SourceRequest):
+            raise TypeError("request must be a SourceRequest")
+        hit = self._load_verified_source(request)
+        if hit is None:
+            raise SourceCacheError(
+                "required verified source is absent from the local cache: "
+                f"{request.source_id}"
+            )
+        _, path = hit
+        return path
+
     def _transfer(
         self, request: SourceRequest, timeout_seconds: float
     ) -> tuple[Path, int, str]:

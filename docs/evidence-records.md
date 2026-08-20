@@ -6,10 +6,19 @@ standard library only; they are intentionally not a database or a general
 schema framework.
 
 Every top-level JSON value has a `record_type` and `schema_version` (currently
-`1`). The record types are `manifest_case`, `observation_request`,
+`1`). The typed trace record types are `manifest_case`, `observation_request`,
 `source_object`, `vision_evidence`, `action`, `budget`, `trace`, and `outcome`.
 `Trace` is the complete packet: it embeds the linked case, requests, sources,
 evidence, actions, budget, and terminal outcome, then validates those links.
+
+The Day 9 cached-only vertical slice emits a separate
+`real_event_evidence` record (also schema version `1`) before the agent and
+trace stages exist. It records two source hashes, calibrated-crop hashes,
+display/threshold/morphology mask hashes, exact external contour points and
+hashes, connected-component measurements, and the annotated reviewer-panel
+PNG hash. Its content hash covers every field except itself. `scripts.tasks
+slice` verifies that record and image against the hashes pinned in the audited
+event manifest.
 
 ## Shared conventions
 

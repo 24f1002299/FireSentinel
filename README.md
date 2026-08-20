@@ -100,6 +100,23 @@ declared source size, transfer bytes, verified checksum, elapsed time, retry
 count, and whether the result was a cache hit. Case cleanup removes exactly one
 case's references and retains blobs that another case still uses.
 
+## Real-event OpenCV slice
+
+The checked-in Park Fire manifest pins two historical GOES-18 Channel 7 objects
+and the reviewed crop and image-processing configuration. Download its sources
+once, then regenerate and verify the complete evidence packet without network
+access:
+
+```powershell
+.\.venv\Scripts\python -m firesentinel.data.download --manifest manifests\park-fire-20240725.json
+.\.venv\Scripts\python -m scripts.tasks slice
+```
+
+The second command is cached-only. It recreates `evidence.json` and the
+annotated `before-after.png` under the case artifact directory, checks the
+pinned evidence and image hashes, and prints both contour hashes. See
+[the slice notes](docs/real-event-slice.md) for the audit scope and limitations.
+
 ## Calibrated GOES crops
 
 `firesentinel.data.goes_crop` converts a verified cached GOES `CMI` object into

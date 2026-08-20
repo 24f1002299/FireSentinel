@@ -78,6 +78,10 @@ def evaluate(_: argparse.Namespace) -> int:
     return _run([sys.executable, "-m", "firesentinel.evaluation.run"])
 
 
+def slice_replay(_: argparse.Namespace) -> int:
+    return _run([sys.executable, "-m", "firesentinel.vision.real_event", "--verify"])
+
+
 def ui(_: argparse.Namespace) -> int:
     return _run(
         [sys.executable, "-m", "streamlit", "run", "src/firesentinel/ui/app.py"]
@@ -116,6 +120,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     ),
     "replay": ("Validate and replay a JSONL event stream.", replay),
     "evaluate": ("Validate an evaluation JSONL file.", evaluate),
+    "slice": (
+        "Recreate the pinned real-event OpenCV evidence from verified cached sources.",
+        slice_replay,
+    ),
     "ui": ("Launch the Streamlit UI shell.", ui),
     "clean": ("Remove generated tool caches.", clean),
 }

@@ -1,0 +1,75 @@
+{
+  "manifest_version": 1,
+  "cases": [
+    {
+      "case_id": "park-fire-20240725",
+      "title": "Park Fire — manually audited Channel 7 thermal slice",
+      "location": {
+        "lat": 39.8457,
+        "lon": -121.7233
+      },
+      "manual_audit": {
+        "audited_at": "2026-08-20T03:37:42.585771Z",
+        "reviewer": "FireSentinel Day 9 development audit",
+        "event_reference": "https://www.fire.ca.gov/incidents/2024/7/24/park-fire",
+        "selection_note": "The focus lies within the Park Fire vicinity near Upper Bidwell Park. The two C07 scans and focal crop were visually reviewed for a persistent, non-operational thermal-evidence example; this single-band image does not confirm wildfire origin or extent."
+      },
+      "crop_parameters": {
+        "bounds": {
+          "south": 39.7,
+          "west": -121.95,
+          "north": 39.98,
+          "east": -121.5
+        },
+        "padding_pixels": 2,
+        "maximum_usable_dqf": 1,
+        "edge_samples": 33
+      },
+      "pipeline": {
+        "display_min_kelvin": 290.0,
+        "display_max_kelvin": 400.0,
+        "threshold_kelvin": 330.0,
+        "morphology_kernel_pixels": 3,
+        "minimum_component_area_pixels": 1
+      },
+      "sources": [
+        {
+          "source_id": "c07-initial",
+          "bucket": "noaa-goes18",
+          "object_key": "ABI-L2-CMIPF/2024/207/22/OR_ABI-L2-CMIPF-M6C07_G18_s20242072230208_e20242072239528_c20242072239594.nc",
+          "size_bytes": 24915634,
+          "sha256": "dff54987960bdf8c9a807581b596bf8ba5bfd26a4fc96735e5ab9c67d8e84e62"
+        },
+        {
+          "source_id": "c07-later",
+          "bucket": "noaa-goes18",
+          "object_key": "ABI-L2-CMIPF/2024/207/22/OR_ABI-L2-CMIPF-M6C07_G18_s20242072250208_e20242072259528_c20242072300000.nc",
+          "size_bytes": 24679977,
+          "sha256": "ee236254ca8416abbc6b4459f24126a3cb56b6bc31e63230b9080cb949d2ddf2"
+        }
+      ],
+      "observations": [
+        {
+          "observation_id": "c07-initial",
+          "source_id": "c07-initial",
+          "channel": "C07",
+          "observation_time": "2024-07-25T22:30:20.800000Z",
+          "scan_start": "2024-07-25T22:30:20.800000Z",
+          "scan_end": "2024-07-25T22:39:52.800000Z"
+        },
+        {
+          "observation_id": "c07-later",
+          "source_id": "c07-later",
+          "channel": "C07",
+          "observation_time": "2024-07-25T22:50:20.800000Z",
+          "scan_start": "2024-07-25T22:50:20.800000Z",
+          "scan_end": "2024-07-25T22:59:52.800000Z"
+        }
+      ],
+      "expected_outputs": {
+        "evidence_content_hash": "7ebf2ba129559974c7ed5623786b891b57ab2b6fe671299b59d7bcc7ab3d1144",
+        "reviewer_panel_sha256": "f80d67dd300a7e5c2a5f613483cd5a2ab3b10f45b459ec578843f270c6fd0a17"
+      }
+    }
+  ]
+}

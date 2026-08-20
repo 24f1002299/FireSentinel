@@ -14,6 +14,7 @@ from firesentinel.data.goes_crop import (
     CropArtifactError,
     CropParameters,
     GeographicBounds,
+    _scan_coordinates,
     extract_calibrated_crop,
     load_calibrated_crop,
     save_calibrated_crop,
@@ -131,6 +132,23 @@ def test_crop_calibrates_masks_and_locates_reference_pixel(source_path: Path) ->
     assert crop.calibrated[conditional.row, conditional.column] == pytest.approx(215.0)
     assert crop.timing.start == datetime(2025, 1, 1, tzinfo=UTC)
     assert crop.timing.end == datetime(2025, 1, 1, 0, 9, 50, tzinfo=UTC)
+
+
+def test_scan_coordinates_decode_packed_scale_and_offset(tmp_path: Path) -> None:
+    path = tmp_path / "packed-coordinates.nc"
+    with Dataset(path, "w") as dataset:
+        dataset.createDimension("x", 3)
+        x = dataset.createVariable("x", "i2", ("x",))
+        x.units = "rad"
+        x.scale_factor = 0.01
+        x.add_offset = -0.1
+        x.set_auto_maskandscale(False)
+        x[:] = np.array((0, 10, 20), dtype=np.int16)
+
+    with Dataset(path) as dataset:
+        actual = _scan_coordinates(dataset.variables["x"], 3, "x")
+
+    np.testing.assert_allclose(actual, (-0.1, 0.0, 0.1))
 
 
 def test_crop_clips_padding_at_the_source_edge_without_wrapping(

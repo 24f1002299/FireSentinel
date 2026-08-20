@@ -773,7 +773,12 @@ def _coordinate_variables(dataset: Any, data_variable: Any) -> tuple[Any, Any]:
 
 
 def _scan_coordinates(variable: Any, expected_size: int, axis: str) -> CoordinateArray:
-    values = np.asarray(_read_unscaled(variable), dtype=np.float64)
+    raw_values = np.asarray(_read_unscaled(variable), dtype=np.float64)
+    scale_factor = _numeric_attribute(variable, "scale_factor", required=False)
+    add_offset = _numeric_attribute(variable, "add_offset", required=False)
+    values = raw_values * (1.0 if scale_factor is None else scale_factor) + (
+        0.0 if add_offset is None else add_offset
+    )
     if (
         values.ndim != 1
         or values.size != expected_size

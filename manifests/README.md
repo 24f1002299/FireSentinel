@@ -41,3 +41,12 @@ Run `python -m firesentinel.data.download inspect` to summarize the verified
 cache. `python -m firesentinel.data.download clean-case --case-id pine-creek`
 removes that case's references and only reclaims content no other cached case
 references.
+
+## Manually audited real-event slice
+
+`park-fire-20240725.json` is also a valid pinned-source manifest. Its single
+case adds the Day 9 audit fields: a documented human review, exact initial and
+later Channel 7 observations, calibrated crop policy, OpenCV parameters, and
+the expected evidence/PNG SHA-256 values. The downloader uses its ordinary
+`cases[].sources[]` fields; the replay reads the additional fields and never
+contacts a catalog or source URL.
