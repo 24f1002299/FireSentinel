@@ -155,3 +155,19 @@ threshold persistence produces `no_persistent_evidence`. Only threshold
 persistence produces `review_escalation`. `CalibratedOutcome.explanation`
 combines fixed outcome and reason-code templates, keeping reviewer language
 deterministic and limited to thermal evidence.
+
+## Streamlit evidence reviewer
+
+Day 23's local reviewer reads completed `real_event_evidence` and
+`local_evidence_job` packets from the artifacts directory. It normalizes them
+into a display model, so packet JSON and terminal logs are not exposed in the
+review flow. A nearby complete Day 22 `agent-loop.jsonl` checkpoint supplies
+the selected and considered actions, resource budget, reason codes, and
+terminal outcome when available.
+
+The interface displays location context, initial ambiguity, time-ordered
+observations, calibrated measurements, masks, contours, evidence changes,
+warnings, and provenance. Its three built-in deterministic stories cover
+review escalation, no persistent evidence, and safe abstention. Every story
+uses reviewer-facing thermal-evidence language and does not establish a
+wildfire determination.

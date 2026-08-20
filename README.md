@@ -1,8 +1,8 @@
 # FireSentinel
 
-FireSentinel is a local, reproducible fire-detection workflow. Day 3 supplies
-the project skeleton: explicit configuration, JSON logs, a deterministic
-OpenCV runtime smoke test, and an empty Streamlit shell.
+FireSentinel is a local, reproducible thermal-evidence review workflow. It
+includes explicit configuration, JSON logs, a deterministic OpenCV runtime
+smoke test, a bounded reviewer outcome, and a Streamlit evidence reviewer.
 
 ## Setup
 
@@ -40,7 +40,7 @@ makes this safe to run before a source is chosen:
 .\.venv\Scripts\python -m scripts.tasks evaluate
 ```
 
-Launch the UI shell at `http://localhost:8501`:
+Launch the evidence reviewer at `http://localhost:8501`:
 
 ```powershell
 .\.venv\Scripts\python -m scripts.tasks ui
@@ -57,6 +57,27 @@ To also delete locally generated artifacts, run:
 ```powershell
 .\.venv\Scripts\python -m scripts.tasks clean --artifacts
 ```
+
+## Evidence reviewer
+
+The reviewer discovers completed `evidence.json` packets under `artifacts/`.
+It presents case and location context, a chronological evidence strip,
+measurements, source masks and contours, considered/selected bounded actions,
+reason codes, resource use, outcome, warnings, and provenance. It summarizes
+these fields rather than showing packet JSON.
+
+Use the three deterministic buttons to explain the intended development-only
+stories without any source files:
+
+- **Emerging event** shows persistent aligned thermal evidence and sends it to
+  reviewer escalation, not a wildfire determination.
+- **Matched control** shows a first candidate that does not persist and ends
+  with no persistent thermal evidence.
+- **Abstention** shows poor coverage and an exhausted observation budget ending
+  in insufficient evidence.
+
+The page is a local review aid only. Its thermal evidence and outcomes must
+not be used for emergency response, dispatch, or a wildfire conclusion.
 
 ## Layout
 
