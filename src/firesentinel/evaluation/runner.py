@@ -21,6 +21,13 @@ from enum import StrEnum
 from pathlib import Path
 from urllib.parse import quote
 
+from firesentinel.agent.outcomes import (
+    DEVELOPMENT_OUTCOME_THRESHOLDS,
+    CalibratedOutcome,
+    OutcomeEvidence,
+    OutcomeThresholds,
+    calibrate_outcome,
+)
 from firesentinel.config import load_settings
 from firesentinel.core.records import Channel, OutcomeState, ReasonCode
 from firesentinel.data.goes_crop import CropParameters, GeographicBounds
@@ -40,7 +47,7 @@ from firesentinel.vision.engine import (
     run_evidence_job,
 )
 
-BASELINE_SCHEMA_VERSION = 1
+BASELINE_SCHEMA_VERSION = 2
 ONE_SHOT_ROLES = ("initial", "alternate")
 FIXED_BUNDLE_ROLES = ("baseline", "initial", "later", "alternate")
 _CHANNEL7_ROLES = ("baseline", "initial", "later")
@@ -159,10 +166,13 @@ class BaselineParameters:
     evidence_template: EvidenceJob
     crop_half_height_degrees: float = 0.25
     crop_half_width_degrees: float = 0.25
+    outcome_thresholds: OutcomeThresholds = DEVELOPMENT_OUTCOME_THRESHOLDS
 
     def __post_init__(self) -> None:
         if not isinstance(self.evidence_template, EvidenceJob):
             raise TypeError("evidence_template must be an EvidenceJob")
+        if not isinstance(self.outcome_thresholds, OutcomeThresholds):
+            raise TypeError("outcome_thresholds must be OutcomeThresholds")
         for field, value in (
             ("crop_half_height_degrees", self.crop_half_height_degrees),
             ("crop_half_width_degrees", self.crop_half_width_degrees),
@@ -192,6 +202,7 @@ class BaselineParameters:
             "anomaly_parameters": template.anomaly_parameters.to_dict(),
             "quality_thresholds": template.quality_thresholds.to_dict(),
             "persistence_parameters": template.persistence_parameters.to_dict(),
+            "outcome_thresholds": self.outcome_thresholds.to_dict(),
         }
 
 
@@ -215,6 +226,7 @@ class BaselineCaseResult:
     outcome_state: OutcomeState
     outcome_reason_codes: tuple[ReasonCode, ...]
     outcome_confidence: float
+    outcome_explanation: str
     observations: tuple[BaselineSource, ...]
     evidence_time_step_count: int
     evidence: tuple[EvidenceJobResult, ...]
@@ -232,6 +244,11 @@ class BaselineCaseResult:
             raise TypeError("outcome_state must be OutcomeState")
         if not 0.0 <= self.outcome_confidence <= 1.0:
             raise ValueError("outcome_confidence must be within [0, 1]")
+        if (
+            not isinstance(self.outcome_explanation, str)
+            or not self.outcome_explanation
+        ):
+            raise ValueError("outcome_explanation must be non-empty")
         if self.selected_source_bytes < 0 or self.downloaded_bytes < 0:
             raise ValueError("baseline byte measurements must be non-negative")
         if self.evidence_time_step_count < 0:
@@ -247,6 +264,7 @@ class BaselineCaseResult:
                 "state": self.outcome_state.value,
                 "reason_codes": [reason.value for reason in self.outcome_reason_codes],
                 "confidence": self.outcome_confidence,
+                "explanation": self.outcome_explanation,
             },
             "observations": [source.to_dict() for source in self.observations],
             "observation_count": len(self.observations),
@@ -475,22 +493,21 @@ def _run_case(
             timeout_seconds=timeout_seconds,
             clock=clock,
         )
-        outcome_state, reason_codes, confidence = _outcome(evidence, job)
+        outcome = _calibrated_outcome(evidence, parameters.outcome_thresholds)
         errors: tuple[BaselineError, ...] = ()
         evidence_results: tuple[EvidenceJobResult, ...] = (evidence,)
     except Exception as error:
         classified = _classify_error(error)
-        outcome_state = OutcomeState.FAILED
-        reason_codes = (classified.reason_code,)
-        confidence = 0.0
+        outcome = CalibratedOutcome(OutcomeState.FAILED, (classified.reason_code,), 0.0)
         errors = (classified,)
         evidence_results = ()
     return BaselineCaseResult(
         case_id=case.case_id,
         mode=mode,
-        outcome_state=outcome_state,
-        outcome_reason_codes=reason_codes,
-        outcome_confidence=confidence,
+        outcome_state=outcome.state,
+        outcome_reason_codes=outcome.reason_codes,
+        outcome_confidence=outcome.confidence,
+        outcome_explanation=outcome.explanation,
         observations=sources,
         evidence_time_step_count=(
             1 if mode == BaselineMode.ONE_SHOT else len(_CHANNEL7_ROLES)
@@ -585,9 +602,11 @@ def _cache_resolver(cache: VerifiedSourceCache) -> SourceResolver:
     return resolve
 
 
-def _outcome(
-    evidence_result: EvidenceJobResult, job: EvidenceJob
-) -> tuple[OutcomeState, tuple[ReasonCode, ...], float]:
+def _calibrated_outcome(
+    evidence_result: EvidenceJobResult, thresholds: OutcomeThresholds
+) -> CalibratedOutcome:
+    """Load completed facts and apply the shared cautious outcome calibrator."""
+
     try:
         payload = json.loads(
             (evidence_result.artifact_directory / "evidence.json").read_text(
@@ -598,87 +617,25 @@ def _outcome(
         raise EvidenceJobFailure(
             ReasonCode.SOURCE_CORRUPT, "completed evidence packet is unreadable"
         ) from error
-    observations = payload.get("observations") if isinstance(payload, Mapping) else None
-    persistence = payload.get("persistence") if isinstance(payload, Mapping) else None
-    if not isinstance(observations, list) or not isinstance(persistence, Mapping):
+    if not isinstance(payload, Mapping):
         raise EvidenceJobFailure(
             ReasonCode.SOURCE_CORRUPT, "completed evidence packet has an invalid shape"
         )
-    quality_reasons: list[ReasonCode] = []
-    unusable_observation_count = 0
-    candidate_count = 0
-    for observation in observations:
-        if not isinstance(observation, Mapping):
-            raise EvidenceJobFailure(
-                ReasonCode.SOURCE_CORRUPT, "completed evidence observation is invalid"
-            )
-        anomaly = observation.get("anomaly")
-        if not isinstance(anomaly, Mapping):
-            raise EvidenceJobFailure(
-                ReasonCode.SOURCE_CORRUPT, "completed anomaly evidence is invalid"
-            )
-        count = anomaly.get("candidate_pixel_count")
-        reasons = anomaly.get("reason_codes")
-        if isinstance(count, int) and not isinstance(count, bool):
-            candidate_count += count
-        else:
-            raise EvidenceJobFailure(
-                ReasonCode.SOURCE_CORRUPT, "completed candidate count is invalid"
-            )
-        if not isinstance(reasons, list):
-            raise EvidenceJobFailure(
-                ReasonCode.SOURCE_CORRUPT, "completed anomaly reasons are invalid"
-            )
-        if reasons:
-            unusable_observation_count += 1
-        for reason in reasons:
-            try:
-                quality_reasons.append(ReasonCode(reason))
-            except ValueError as error:
-                raise EvidenceJobFailure(
-                    ReasonCode.SOURCE_CORRUPT, "completed anomaly reason is unknown"
-                ) from error
-    if unusable_observation_count == len(observations):
-        return (
-            OutcomeState.INSUFFICIENT_EVIDENCE,
-            _unique_reasons((*quality_reasons, ReasonCode.INSUFFICIENT_EVIDENCE)),
-            0.0,
-        )
-    if candidate_count == 0:
-        return (
-            OutcomeState.NO_PERSISTENT_EVIDENCE,
-            (ReasonCode.THERMAL_EVIDENCE_ABSENT,),
-            0.0,
-        )
-    persistence_count = persistence.get("persistence_count")
-    persistence_confidence = persistence.get("confidence")
-    if (
-        isinstance(persistence_count, int)
-        and not isinstance(persistence_count, bool)
-        and persistence_count >= 2
-        and isinstance(persistence_confidence, (int, float))
-        and not isinstance(persistence_confidence, bool)
-        and 0.0 <= float(persistence_confidence) <= 1.0
-    ):
-        return (
-            OutcomeState.REVIEW_ESCALATION,
-            (
-                ReasonCode.THERMAL_EVIDENCE_PERSISTENT,
-                ReasonCode.HUMAN_REVIEW_REQUIRED,
-            ),
-            float(persistence_confidence),
-        )
-    if len(job.observations) == 1:
-        return (
-            OutcomeState.INSUFFICIENT_EVIDENCE,
-            (ReasonCode.THERMAL_ANOMALY_WEAK, ReasonCode.INSUFFICIENT_EVIDENCE),
-            0.0,
-        )
-    return (
-        OutcomeState.NO_PERSISTENT_EVIDENCE,
-        (ReasonCode.THERMAL_ANOMALY_WEAK, ReasonCode.NO_PERSISTENT_EVIDENCE),
-        0.0,
-    )
+    try:
+        facts = OutcomeEvidence.from_local_evidence(payload)
+    except ValueError as error:
+        raise EvidenceJobFailure(ReasonCode.SOURCE_CORRUPT, str(error)) from error
+    return calibrate_outcome(facts, thresholds)
+
+
+def _outcome(
+    evidence_result: EvidenceJobResult, job: EvidenceJob
+) -> tuple[OutcomeState, tuple[ReasonCode, ...], float]:
+    """Compatibility wrapper for callers needing only the former tuple fields."""
+
+    del job
+    calibrated = _calibrated_outcome(evidence_result, DEVELOPMENT_OUTCOME_THRESHOLDS)
+    return calibrated.state, calibrated.reason_codes, calibrated.confidence
 
 
 def _classify_error(error: Exception) -> BaselineError:
@@ -720,10 +677,6 @@ def _summary(results: tuple[BaselineCaseResult, ...]) -> dict[str, object]:
         "latency_milliseconds": sum(result.latency_milliseconds for result in results),
         "error_count": sum(len(result.errors) for result in results),
     }
-
-
-def _unique_reasons(reasons: tuple[ReasonCode, ...]) -> tuple[ReasonCode, ...]:
-    return tuple(dict.fromkeys(reasons))
 
 
 def _required_text(value: Mapping[str, object], field: str) -> str:

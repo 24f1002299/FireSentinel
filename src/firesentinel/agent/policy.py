@@ -15,6 +15,7 @@ from enum import StrEnum
 from math import isfinite
 from re import compile
 
+from firesentinel.agent.outcomes import DEVELOPMENT_OUTCOME_THRESHOLDS
 from firesentinel.agent.tools import BoundedObservationTools, ToolResult
 from firesentinel.core.records import ActionType, Budget, ReasonCode
 
@@ -443,9 +444,10 @@ def _conditions(
     if ReasonCode.BANDS_CONFLICT in evidence.reason_codes:
         conditions.append(PolicyCondition.BANDS_CONFLICT)
     if (
-        ReasonCode.THERMAL_EVIDENCE_PERSISTENT in evidence.reason_codes
-        or evidence.persistence_count >= 2
-        and evidence.persistence_confidence > 0.0
+        evidence.persistence_count
+        >= DEVELOPMENT_OUTCOME_THRESHOLDS.minimum_review_persistence_count
+        and evidence.persistence_confidence
+        >= DEVELOPMENT_OUTCOME_THRESHOLDS.minimum_review_persistence_confidence
     ):
         conditions.append(PolicyCondition.PERSISTENT_EVIDENCE)
     if _ABSENT_PERSISTENCE_REASONS.intersection(evidence.reason_codes):

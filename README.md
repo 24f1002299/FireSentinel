@@ -246,6 +246,21 @@ all considered/rejected actions, and measured evidence changes from the prior
 packet. `apply_policy_decision` is the separate adapter that invokes the
 already bounded Day 19 tool.
 
+## Calibrated reviewer outcomes
+
+`firesentinel.agent.outcomes` applies one shared, development-only outcome
+table to accumulated thermal evidence. Its pinned configuration requires two
+usable observations before a no-persistent-evidence result, and two aligned
+persistence measurements with at least 0.50 confidence before review
+escalation. Confidence below that boundary does not become a stronger outcome.
+
+Poor coverage or contrast, alignment failure, and exhausted budgets end in
+`insufficient_evidence`; conflicting bands end in `human_review`. A completed
+comparison without threshold persistence ends in `no_persistent_evidence`.
+Every outcome includes reason codes and fixed plain-language explanation
+templates for reviewers. These are thermal-evidence workflow outcomes only;
+they do not establish incident type, origin, extent, or operational status.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for

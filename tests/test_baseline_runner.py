@@ -158,7 +158,11 @@ def test_modes_complete_each_development_case_with_comparable_reports(
             "errors",
         }
         resources = cast(dict[str, object], case["resources"])
+        outcome = cast(dict[str, object], case["outcome"])
         evidence = cast(list[dict[str, object]], case["evidence"])
+        assert set(outcome) == {"state", "reason_codes", "confidence", "explanation"}
+        assert isinstance(outcome["explanation"], str)
+        assert "confirmed wildfire" not in outcome["explanation"].lower()
         assert set(resources) == {
             "selected_source_bytes",
             "downloaded_bytes",

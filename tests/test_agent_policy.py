@@ -212,6 +212,21 @@ def test_same_inputs_always_select_the_same_action_and_full_log() -> None:
     assert len(first.rejected_actions) == len(AVAILABLE) + 2
 
 
+def test_low_confidence_persistence_does_not_bypass_outcome_calibration() -> None:
+    evidence = EvidenceSnapshot(
+        evidence_ids=("evidence-low",),
+        reason_codes=(ReasonCode.THERMAL_EVIDENCE_PERSISTENT,),
+        candidate_region_count=2,
+        persistence_count=2,
+        persistence_confidence=0.49,
+    )
+
+    decision = TransparentAgentPolicy().decide(evidence, _budget(), ())
+
+    assert decision.selected_action == PolicyAction(ActionType.ABSTAIN)
+    assert PolicyCondition.PERSISTENT_EVIDENCE not in decision.satisfied_conditions
+
+
 def test_controlled_evidence_change_changes_action_and_is_logged() -> None:
     policy = TransparentAgentPolicy()
     initial = _evidence(ReasonCode.THERMAL_ANOMALY_WEAK)

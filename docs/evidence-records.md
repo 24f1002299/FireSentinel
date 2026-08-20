@@ -122,3 +122,20 @@ escalate to human review. Absent persistence selects finalization, and weak
 contextual evidence selects a deterministic follow-up. The selected action is
 only executed by `apply_policy_decision`, which delegates to the bounded tool
 surface described above.
+
+## Calibrated outcomes
+
+`firesentinel.agent.outcomes` is the shared terminal calibration layer for
+development reports and the local agent. `OutcomeThresholds` records its
+development-only selection scope and its explicit review, insufficient, and
+no-persistent-evidence boundaries. `OutcomeEvidence` contains only measured
+observation counts, candidate and persistence facts, closed reason codes, and
+the budget-exhausted flag.
+
+The calibrator terminates rather than strengthening weak cases: poor quality,
+alignment failure, or a depleted budget produce `insufficient_evidence`; band
+conflict produces `human_review`; and a complete usable comparison without
+threshold persistence produces `no_persistent_evidence`. Only threshold
+persistence produces `review_escalation`. `CalibratedOutcome.explanation`
+combines fixed outcome and reason-code templates, keeping reviewer language
+deterministic and limited to thermal evidence.
