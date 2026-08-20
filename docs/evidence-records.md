@@ -114,6 +114,21 @@ For scoring only, `review_escalation` maps to positive thermal evidence and
 false negatives for their true class in macro metrics. This evaluation mapping
 does not claim confirmed wildfire occurrence.
 
+## Frozen error-analysis report
+
+`firesentinel.evaluation.error_analysis` consumes only a sealed
+`firesentinel_frozen_evaluation` report and produces a
+`firesentinel_frozen_error_analysis` record. It neither replays evidence nor
+changes thresholds or policy. The record hashes its source report and includes
+four tables: mode efficiency, error outcomes, agent value versus one-shot, and
+adaptive extra-observation cases that did not correct the one-shot result.
+
+`representative_cases` holds deterministic, trace-backed `success`, `control`,
+`abstention`, and `genuine_limitation` rows, each beside all three mode results.
+Every headline claim references a table and at least one selected adaptive-loop
+trace case. A changed source report, incomplete mode coverage, missing claim
+support, or unreadable representative trace makes verification fail.
+
 ## Bounded observation-tool replies
 
 Day 19's `ToolResult` is an in-process agent reply rather than a new evidence

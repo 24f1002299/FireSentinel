@@ -106,3 +106,17 @@ after verifying every frozen artifact. The sealed output is
 per-case results, and test/stress/combined aggregate tables. Repeating the
 command verifies and reuses the matching report. `--rerun --overwrite` is the
 explicit replacement path.
+
+## Frozen error analysis
+
+After `frozen-results/frozen-evaluation.json` is sealed, derive its
+trace-supported analysis without rerunning evidence:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks error-analysis
+```
+
+The output is `frozen-results/error-analysis.json`. It is pinned to the exact
+Day 25 report hash and reports error categories, fixed/adaptive efficiency,
+extra observations that did not help, and trace-backed representatives. It is
+not a model-selection or tuning input.

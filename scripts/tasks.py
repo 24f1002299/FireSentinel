@@ -210,6 +210,19 @@ def frozen_evaluation(arguments: argparse.Namespace) -> int:
     return _run(command)
 
 
+def error_analysis(arguments: argparse.Namespace) -> int:
+    """Freeze trace-supported Day 26 analysis from the sealed evaluation."""
+
+    command = [sys.executable, "-m", "firesentinel.evaluation.error_analysis"]
+    for option in ("evaluation_report", "output"):
+        value = getattr(arguments, option)
+        if value is not None:
+            command.extend([f"--{option.replace('_', '-')}", str(value)])
+    if arguments.overwrite:
+        command.append("--overwrite")
+    return _run(command)
+
+
 def agent_loop(arguments: argparse.Namespace) -> int:
     command = [
         sys.executable,
@@ -303,6 +316,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     "frozen-evaluation": (
         "Run or reuse the sealed one-shot, fixed-bundle, and adaptive evaluation.",
         frozen_evaluation,
+    ),
+    "error-analysis": (
+        "Freeze trace-supported error and agent-value analysis from Day 25 output.",
+        error_analysis,
     ),
     "agent-loop": (
         "Run or resume one checkpointed bounded local investigation.",
@@ -535,6 +552,22 @@ def main(argv: list[str] | None = None) -> int:
                 "--overwrite",
                 action="store_true",
                 help="replace a changed report; requires --rerun",
+            )
+        if name == "error-analysis":
+            subparser.add_argument(
+                "--evaluation-report",
+                type=Path,
+                help="sealed Day 25 report under evaluation-data/",
+            )
+            subparser.add_argument(
+                "--output",
+                type=Path,
+                help="sealed Day 26 analysis under evaluation-data/",
+            )
+            subparser.add_argument(
+                "--overwrite",
+                action="store_true",
+                help="replace a changed analysis report",
             )
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)

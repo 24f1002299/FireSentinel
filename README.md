@@ -394,3 +394,21 @@ the sealed matching report. Use `--rerun --overwrite` only to deliberately
 replace it after an approved evaluation rerun. Review escalation is scored as
 a positive thermal-evidence decision; human-review, insufficient-evidence, and
 failed outcomes are abstentions. None is a confirmed-wildfire assertion.
+
+## Frozen error and agent-value analysis
+
+After the Day 25 report is sealed, derive the reviewer-facing Day 26 analysis
+without replaying evidence or tuning any policy:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks error-analysis
+```
+
+The command writes `evaluation-data/frozen-results/error-analysis.json`. It
+separates false positives, decisive false negatives, and abstentions; compares
+fixed-bundle and adaptive recall against mean observations, bytes, and latency;
+and lists adaptive cases that used extra observations without correcting the
+one-shot result. It also selects trace-backed positive success, control,
+abstention, and genuine-limitation examples side by side. Every generated
+headline statement names its source table and the adaptive trace cases that
+support it.
