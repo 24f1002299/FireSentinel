@@ -27,6 +27,17 @@ from firesentinel.vision.fixtures import (
     offline_fixture_manifest,
     verify_fixture_bundle,
 )
+from firesentinel.vision.persistence import (
+    DEVELOPMENT_PERSISTENCE_PARAMETERS,
+    AlignedObservation,
+    GeospatialGrid,
+    PersistenceParameters,
+    PersistenceTrack,
+    RegionMatch,
+    TemporalObservation,
+    TemporalPersistenceResult,
+    measure_temporal_persistence,
+)
 from firesentinel.vision.quality import (
     DEVELOPMENT_QUALITY_THRESHOLDS,
     THRESHOLD_SELECTION_SCOPE,
@@ -78,4 +89,13 @@ __all__ = [
     "apply_quality_gate",
     "measure_observation_quality",
     "measure_prepared_tile_quality",
+    "DEVELOPMENT_PERSISTENCE_PARAMETERS",
+    "AlignedObservation",
+    "GeospatialGrid",
+    "PersistenceParameters",
+    "PersistenceTrack",
+    "RegionMatch",
+    "TemporalObservation",
+    "TemporalPersistenceResult",
+    "measure_temporal_persistence",
 ]

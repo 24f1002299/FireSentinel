@@ -159,6 +159,16 @@ component records its area, centroid, source-array contrast/difference
 measurements, edge proximity, and an annotated overlay; poor-quality channels
 clear all candidate regions before they can become fire evidence.
 
+## Temporal persistence
+
+`firesentinel.vision.persistence.measure_temporal_persistence` receives each
+candidate mask with calibrated C07 values and its latitude/longitude grids. It
+nearest-resamples every available observation onto one geospatial common grid,
+then matches only adjacent components that satisfy both centroid-distance and
+intersection-over-union limits. The result reports track count, overlap, area
+and temperature trend, disappearance, and a bounded confidence. A `None`
+observation is an explicit continuity break, never an interpolated look.
+
 ## Evaluation-only FIRMS references
 
 Local FIRMS CSV exports can be normalized into isolated event references for
