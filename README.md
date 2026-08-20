@@ -412,3 +412,20 @@ one-shot result. It also selects trace-backed positive success, control,
 abstention, and genuine-limitation examples side by side. Every generated
 headline statement names its source table and the adaptive trace cases that
 support it.
+
+## Local performance profiling
+
+Use the bounded local profiler to inspect source/cache access, crop loading,
+OpenCV stages, artifact work, and reviewer view-model loading without changing
+evidence or policy:
+
+```powershell
+.\.venv\Scripts\python -m scripts.tasks profile `
+  --job path\to\evidence-job.json `
+  --output artifacts\performance-profile.json
+```
+
+Day 27 measured crop loading as the dominant local replay cost and added only
+a job-local immutable-crop cache for repeated source paths. The cache preserves
+the content-addressed evidence result; see [performance notes](docs/performance.md)
+for the measurement and parity contract.

@@ -223,6 +223,23 @@ def error_analysis(arguments: argparse.Namespace) -> int:
     return _run(command)
 
 
+def profile(arguments: argparse.Namespace) -> int:
+    """Profile one local evidence replay and reviewer model load."""
+
+    command = [
+        sys.executable,
+        "-m",
+        "firesentinel.performance",
+        "--job",
+        str(arguments.job),
+        "--output",
+        str(arguments.output),
+    ]
+    if arguments.catalog_cache is not None:
+        command.extend(["--catalog-cache", str(arguments.catalog_cache)])
+    return _run(command)
+
+
 def agent_loop(arguments: argparse.Namespace) -> int:
     command = [
         sys.executable,
@@ -320,6 +337,10 @@ TASKS: dict[str, tuple[str, Task]] = {
     "error-analysis": (
         "Freeze trace-supported error and agent-value analysis from Day 25 output.",
         error_analysis,
+    ),
+    "profile": (
+        "Profile one local evidence replay, artifact work, and reviewer model load.",
+        profile,
     ),
     "agent-loop": (
         "Run or resume one checkpointed bounded local investigation.",
@@ -568,6 +589,16 @@ def main(argv: list[str] | None = None) -> int:
                 "--overwrite",
                 action="store_true",
                 help="replace a changed analysis report",
+            )
+        if name == "profile":
+            subparser.add_argument(
+                "--job", type=Path, required=True, help="local evidence-job JSON"
+            )
+            subparser.add_argument(
+                "--output", type=Path, required=True, help="profile JSON output"
+            )
+            subparser.add_argument(
+                "--catalog-cache", type=Path, help="local GOES catalog-cache root"
             )
         subparser.set_defaults(function=function)
     arguments = parser.parse_args(argv)

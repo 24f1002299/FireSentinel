@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from firesentinel.core.records import ReasonCode
+from firesentinel.data.goes_crop import (
+    CalibratedCrop,
+    CropParameters,
+    extract_calibrated_crop,
+)
+from firesentinel.performance import profile_local_replay
 from firesentinel.vision.engine import (
     EvidenceJob,
     EvidenceJobCancelled,
@@ -76,6 +84,76 @@ def test_identical_local_evidence_jobs_reuse_one_complete_content_addressed_pack
     assert len(evidence["artifacts"]) == 14
     for item in evidence["artifacts"]:
         assert (first.artifact_directory / item["filename"]).is_file()
+
+
+def test_repeated_source_crop_is_cached_without_changing_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "cached").mkdir()
+    cached_job = _job(tmp_path / "cached")
+    original_crop = extract_calibrated_crop
+    crop_calls = 0
+
+    def counted_crop(source_path: Path, parameters: CropParameters) -> CalibratedCrop:
+        nonlocal crop_calls
+        crop_calls += 1
+        return original_crop(source_path, parameters)
+
+    monkeypatch.setattr(
+        "firesentinel.vision.engine.extract_calibrated_crop", counted_crop
+    )
+    cached = run_evidence_job(cached_job, tmp_path / "cached-artifacts")
+    assert crop_calls == 1
+
+    source = cached_job.observations[0].channel7.source_path
+    copies: list[Path] = []
+    for index in range(4):
+        copy = tmp_path / "uncached" / f"source-{index}.nc"
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, copy)
+        copies.append(copy)
+    initial, later = cached_job.observations
+    uncached_job = EvidenceJob(
+        cached_job.case_id,
+        cached_job.crop_parameters,
+        cached_job.tile_parameters,
+        (
+            EvidenceJobObservation(
+                initial.observation_id,
+                EvidenceJobSource(initial.channel7.catalog_key, copies[0]),
+                EvidenceJobSource(initial.channel14.catalog_key, copies[1]),
+            ),
+            EvidenceJobObservation(
+                later.observation_id,
+                EvidenceJobSource(later.channel7.catalog_key, copies[2]),
+                EvidenceJobSource(later.channel14.catalog_key, copies[3]),
+            ),
+        ),
+    )
+    uncached = run_evidence_job(uncached_job, tmp_path / "uncached-artifacts")
+
+    assert cached.content_hash == uncached.content_hash
+    assert (
+        json.loads(
+            (cached.artifact_directory / "evidence.json").read_text(encoding="utf-8")
+        )["content_hash"]
+        == uncached.content_hash
+    )
+
+
+def test_local_profile_covers_cache_crop_opencv_artifact_and_reviewer_stages(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "profile").mkdir()
+    profile = profile_local_replay(_job(tmp_path / "profile"))
+
+    assert profile["record_type"] == "firesentinel_local_performance_profile"
+    assert cast(float, profile["source_cache_access_milliseconds"]) >= 0.0
+    assert cast(float, profile["crop_loading_milliseconds"]) > 0.0
+    assert cast(float, profile["artifact_and_metadata_milliseconds"]) >= 0.0
+    assert cast(float, profile["ui_reviewer_model_loading_milliseconds"]) >= 0.0
+    stages = cast(dict[str, float], profile["opencv_stages_milliseconds"])
+    assert set(stages) == {"prepare", "anomaly"}
 
 
 def test_cli_loads_a_portable_job_manifest_and_reports_the_artifact(

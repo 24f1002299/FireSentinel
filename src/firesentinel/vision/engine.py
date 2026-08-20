@@ -355,6 +355,7 @@ def run_evidence_job(
     timeout = _positive_number(timeout_seconds, "timeout_seconds")
     started = clock()
     timings: dict[str, float] = {}
+    crop_cache: dict[Path, CalibratedCrop] = {}
 
     def checkpoint() -> None:
         if cancellation_requested is not None and cancellation_requested():
@@ -370,24 +371,34 @@ def run_evidence_job(
         timings[name] = _milliseconds(clock() - stage_started)
         return value
 
+    def crop(source_path: Path) -> CalibratedCrop:
+        """Reuse an immutable crop when a bounded job repeats one source.
+
+        Fixed bundles pair multiple C07 times with one prescribed C14 companion.
+        Crop decoding and projection dominate the local replay, while a
+        :class:`CalibratedCrop` is immutable after validation.  This cache is
+        deliberately job-local: it cannot outlive the source/parameter scope or
+        conceal a changed local file between separate runs.
+        """
+
+        key = Path(source_path).resolve()
+        existing = crop_cache.get(key)
+        if existing is not None:
+            return existing
+        loaded = extract_calibrated_crop(key, job.crop_parameters)
+        crop_cache[key] = loaded
+        return loaded
+
     try:
         runs: list[_ObservationRun] = []
         for observation in job.observations:
             channel7_crop = stage(
                 f"crop:{observation.observation_id}:C07",
-                partial(
-                    extract_calibrated_crop,
-                    observation.channel7.source_path,
-                    job.crop_parameters,
-                ),
+                partial(crop, observation.channel7.source_path),
             )
             channel14_crop = stage(
                 f"crop:{observation.observation_id}:C14",
-                partial(
-                    extract_calibrated_crop,
-                    observation.channel14.source_path,
-                    job.crop_parameters,
-                ),
+                partial(crop, observation.channel14.source_path),
             )
             remapped_channel14, remapped_invalid = stage(
                 f"align-bands:{observation.observation_id}",
